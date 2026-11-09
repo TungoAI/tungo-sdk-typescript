@@ -10,10 +10,15 @@ import {
   HttpTransport,
   type TungoClientOptions,
   type RequestOptions,
+  type RawResponse,
   type SSEEvent,
+  type ChatStreamAccumulated,
+  type ChatStreamCallbacks,
+  accumulateChatStream,
   TungoWebhooks,
   TungoHooks,
   TungoMoney,
+  TungoKazakhstan,
   TungoError,
 } from './runtime.ts';
 
@@ -21,7 +26,7 @@ import {
  * Официальный клиент Tungo Platform API.
  *
  * Поддерживает как низкоуровневые вызовы всех 13 ресурсов API (для профи),
- * так и высокоуровневые методы `ask()`, `streamChat()`, `runScenarioAndWait()`, `waitForBatch()`, `sendHook()` (для быстрого старта).
+ * так и высокоуровневые методы `ask()`, `streamChat()`, `streamChatWithResult()`, `uploadBankStatement()`, `answerQuestion()`, `runScenarioAndWait()`, `waitForBatch()`, `sendHook()` (для быстрого старта).
  */
 export class TungoClient {
   readonly transport: HttpTransport;
@@ -62,6 +67,32 @@ export class TungoClient {
   }
 
   /**
+   * Выполнить низкоуровневый запрос и получить RawResponse<T> с полными заголовками,
+   * статусом, x-request-id и информацией о лимитах (escape hatch для профи).
+   */
+  async requestRaw<T = unknown>(
+    method: string,
+    path: string,
+    options?: {
+      query?: Record<string, unknown>;
+      body?: unknown;
+      auth?: 'bearer' | 'hook' | 'none';
+      idempotent?: boolean;
+      retrySafe?: boolean;
+      requestOptions?: RequestOptions;
+    },
+  ): Promise<RawResponse<T>> {
+    return this.transport.requestRaw<T>(method, path, {
+      query: options?.query,
+      body: options?.body,
+      auth: options?.auth,
+      idempotent: options?.idempotent,
+      retrySafe: options?.retrySafe,
+      options: options?.requestOptions,
+    });
+  }
+
+  /**
    * Быстрый вопрос ИИ-бухгалтеру в 1 строку (синхронный режим stream: false).
    * Возвращает готовый ответ ИИ, id диалога и статистику расхода токенов/тиынов.
    */
@@ -72,7 +103,7 @@ export class TungoClient {
   ): Promise<T.ChatTurnResult> {
     const { requestOptions, ...rest } = options ?? {};
     return this.chat.create(
-      companyId,
+      companyId || this.transport.resolveCompanyId(),
       {
         message,
         stream: false,
@@ -91,7 +122,83 @@ export class TungoClient {
     options?: RequestOptions,
   ): AsyncGenerator<SSEEvent, void, unknown> {
     const body = typeof message === 'string' ? ({ message } as T.ChatMessageRequest) : (message as T.ChatMessageRequest);
-    return this.chat.stream(companyId, body, options);
+    return this.chat.stream(companyId || this.transport.resolveCompanyId(), body, options);
+  }
+
+  /**
+   * Потоковый вопрос ИИ-бухгалтеру с колбэками в реальном времени (onTextDelta, onReasoningDelta, onToolCall)
+   * и возвратом собранного итогового ответа.
+   */
+  async streamChatWithResult(
+    companyId: string,
+    message: string | Omit<T.ChatMessageRequest, 'stream'>,
+    callbacks?: ChatStreamCallbacks,
+    options?: RequestOptions,
+  ): Promise<ChatStreamAccumulated<T.ChatTurnResult>> {
+    const stream = this.streamChat(companyId, message, options);
+    return accumulateChatStream<T.ChatTurnResult>(stream, callbacks);
+  }
+
+  /**
+   * Ответить на уточняющий вопрос ИИ-ассистента (событие choice) и продолжить ход.
+   */
+  async answerQuestion(
+    companyId: string,
+    dialogId: string,
+    choiceId: string,
+    answers: T.ChatChoiceAnswer[],
+    options?: RequestOptions,
+  ): Promise<T.ChatTurnResult> {
+    return this.chat.answer(
+      companyId || this.transport.resolveCompanyId(),
+      dialogId,
+      {
+        choice_id: choiceId,
+        answers,
+        stream: false,
+      },
+      options,
+    );
+  }
+
+  /**
+   * Загрузить банковскую выписку (1СClientBankExchange .txt или файл из банка в base64/Buffer) на разбор в пачку предложений.
+   */
+  async uploadBankStatement(
+    companyId: string,
+    fileName: string,
+    content: Buffer | Uint8Array | string,
+    options?: {
+      isPlainText?: boolean;
+      limit?: number;
+      requestOptions?: RequestOptions;
+    },
+  ): Promise<T.BatchJob> {
+    const co = companyId || this.transport.resolveCompanyId();
+    if (options?.isPlainText && typeof content === 'string') {
+      return this.batches.createBankStatement(
+        co,
+        {
+          file_name: fileName,
+          text: content,
+          limit: options.limit,
+        },
+        options.requestOptions,
+      );
+    }
+    const base64 =
+      typeof content === 'string'
+        ? content
+        : Buffer.from(content).toString('base64');
+    return this.batches.createBankStatement(
+      co,
+      {
+        file_name: fileName,
+        file: base64,
+        limit: options?.limit,
+      },
+      options?.requestOptions,
+    );
   }
 
   /**
@@ -141,8 +248,9 @@ export class TungoClient {
     body?: T.AutomationScenarioRunInput,
     pollOptions?: { intervalMs?: number; timeoutMs?: number },
   ): Promise<T.AutomationRunDetail> {
-    const started = await this.automations.runScenario(companyId, scenarioId, body ?? {});
-    return this.waitForRun(companyId, started.id, pollOptions);
+    const co = companyId || this.transport.resolveCompanyId();
+    const started = await this.automations.runScenario(co, scenarioId, body ?? {});
+    return this.waitForRun(co, started.id, pollOptions);
   }
 
   /**
@@ -153,11 +261,12 @@ export class TungoClient {
     runId: string,
     pollOptions?: { intervalMs?: number; timeoutMs?: number },
   ): Promise<T.AutomationRunDetail> {
+    const co = companyId || this.transport.resolveCompanyId();
     const intervalMs = pollOptions?.intervalMs ?? 1000;
     const timeoutMs = pollOptions?.timeoutMs ?? 120_000;
     const deadline = Date.now() + timeoutMs;
     while (true) {
-      const run = await this.automations.getRun(companyId, runId);
+      const run = await this.automations.getRun(co, runId);
       if (run.state === 'done' || run.state === 'error' || run.state === 'cancelled' || run.state === 'skipped') {
         return run;
       }
@@ -176,11 +285,12 @@ export class TungoClient {
     batchId: string,
     pollOptions?: { intervalMs?: number; timeoutMs?: number },
   ): Promise<T.BatchJob> {
+    const co = companyId || this.transport.resolveCompanyId();
     const intervalMs = pollOptions?.intervalMs ?? 1000;
     const timeoutMs = pollOptions?.timeoutMs ?? 120_000;
     const deadline = Date.now() + timeoutMs;
     while (true) {
-      const job = await this.batches.get(companyId, batchId);
+      const job = await this.batches.get(co, batchId);
       if (!job.running) {
         return job;
       }
@@ -197,9 +307,20 @@ export class TungoClient {
   verifyWebhook<K extends keyof T.WebhookEventMap = keyof T.WebhookEventMap>(
     rawBody: string | Buffer,
     headers: Record<string, string | string[] | undefined>,
-    secret: string,
+    secret?: string,
     toleranceSec = 300,
   ): T.WebhookEventMap[K] {
-    return TungoWebhooks.verifyAndParse<T.WebhookEventMap[K]>(rawBody, headers, secret, toleranceSec);
+    const resolvedSecret = secret ?? this.transport.webhookSecret;
+    if (!resolvedSecret) {
+      throw new TungoError('Не указан секрет вебхука (передайте secret или задайте TUNGO_WEBHOOK_SECRET)');
+    }
+    return TungoWebhooks.verifyAndParse<T.WebhookEventMap[K]>(rawBody, headers, resolvedSecret, toleranceSec);
+  }
+
+  /**
+   * Проверить контрольную сумму 12-значного БИН или ИИН РК.
+   */
+  isValidBinIin(value: string): boolean {
+    return TungoKazakhstan.isValidBinIin(value);
   }
 }

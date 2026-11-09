@@ -5,17 +5,44 @@ export const SDK_VERSION = "0.1.0";
 export const CONTRACT_HASH = "f2ee354886229ce85b3d5f493ead4849ce2f0128e823c5fe90f57d359e45edc0";
 export const DEFAULT_BASE_URL = 'https://api.tungo.kz';
 
+export interface RequestHookInfo {
+  method: string;
+  url: string;
+  headers: Record<string, string>;
+  attempt: number;
+}
+
+export interface ResponseHookInfo {
+  method: string;
+  url: string;
+  status: number;
+  durationMs: number;
+  requestId: string | null;
+}
+
 export interface TungoClientOptions {
   /** Ключ API организации (tg_…). Если не передан, берётся из process.env.TUNGO_API_KEY. */
   apiKey?: string;
   /** Базовый адрес API Tungo (по умолчанию https://api.tungo.kz или process.env.TUNGO_BASE_URL). */
   baseUrl?: string;
+  /** ID компании по умолчанию (co_… или process.env.TUNGO_COMPANY_ID). */
+  companyId?: string;
+  /** ID организации по умолчанию (ws_… или process.env.TUNGO_WORKSPACE_ID). */
+  workspaceId?: string;
+  /** Секрет вебхуков по умолчанию (whsec_… или process.env.TUNGO_WEBHOOK_SECRET). */
+  webhookSecret?: string;
   /** Таймаут одного HTTP-запроса в миллисекундах (по умолчанию 30 000). */
   timeoutMs?: number;
   /** Максимальное число автоматических повторов при 429 / 502 / 503 / 504 и сбоях сети (по умолчанию 3). */
   maxRetries?: number;
   /** Использовать Authorization: Bearer tg_… вместо заголовка x-api-key. */
   useBearerAuth?: boolean;
+  /** Включить безопасное отладочное логирование запросов (или TUNGO_DEBUG=true). Секреты маскируются [REDACTED]. */
+  debug?: boolean;
+  /** Хук перед отправкой HTTP-запроса (для OpenTelemetry / трейсинга / метрик). */
+  onRequest?: (info: RequestHookInfo) => void;
+  /** Хук после получения HTTP-ответа (для OpenTelemetry / трейсинга / метрик). */
+  onResponse?: (info: ResponseHookInfo) => void;
   /** Кастомная реализация fetch (для тестов или прокси). */
   fetch?: typeof globalThis.fetch;
   /** Дополнительные заголовки ко всем запросам. */
@@ -29,6 +56,8 @@ export interface RequestOptions {
   clientRequestId?: string;
   /** Переопределение таймаута для конкретного вызова (мс). */
   timeoutMs?: number;
+  /** Переопределение числа повторов для конкретного вызова. */
+  maxRetries?: number;
   /** Отмена запроса (AbortSignal). */
   signal?: AbortSignal;
   /** Дополнительные заголовки. */
@@ -39,6 +68,15 @@ export interface RateLimitInfo {
   limit: number;
   remaining: number;
   resetSec: number;
+}
+
+export interface RawResponse<T = unknown> {
+  data: T;
+  status: number;
+  headers: Record<string, string>;
+  requestId: string | null;
+  rateLimit: RateLimitInfo | null;
+  rawBody: string;
 }
 
 export interface SSEEvent<T = unknown> {
@@ -56,11 +94,28 @@ export class TungoError extends Error {
   }
 }
 
+/** Ошибка обрыва соединения или DNS при обращении к API Tungo. */
+export class TungoConnectionError extends TungoError {
+  constructor(message: string) {
+    super(message);
+    this.name = 'TungoConnectionError';
+  }
+}
+
+/** Ошибка превышения времени ожидания ответа от API Tungo. */
+export class TungoTimeoutError extends TungoConnectionError {
+  constructor(message: string) {
+    super(message);
+    this.name = 'TungoTimeoutError';
+  }
+}
+
 /** Ошибка, возвращённая сервером API Tungo в стандартном конверте Error. */
 export class TungoApiError extends TungoError {
   readonly status: number;
   readonly errorType: string;
   readonly errorCode: string | null;
+  readonly hint: string | null;
   readonly requestId: string | null;
   readonly retryAfterSec: number | null;
   readonly rateLimit: RateLimitInfo | null;
@@ -71,6 +126,7 @@ export class TungoApiError extends TungoError {
     status: number;
     errorType: string;
     errorCode?: string | null;
+    hint?: string | null;
     requestId?: string | null;
     retryAfterSec?: number | null;
     rateLimit?: RateLimitInfo | null;
@@ -81,6 +137,7 @@ export class TungoApiError extends TungoError {
     this.status = params.status;
     this.errorType = params.errorType;
     this.errorCode = params.errorCode ?? null;
+    this.hint = params.hint ?? null;
     this.requestId = params.requestId ?? null;
     this.retryAfterSec = params.retryAfterSec ?? null;
     this.rateLimit = params.rateLimit ?? null;
@@ -137,33 +194,47 @@ export class TungoRateLimitError extends TungoApiError {
   }
 }
 
+function parseRetryAfterHeader(val: string | null): number | null {
+  if (!val) return null;
+  const num = Number(val);
+  if (Number.isFinite(num) && num >= 0) return num;
+  const dateMs = Date.parse(val);
+  if (!Number.isNaN(dateMs)) {
+    return Math.max(0, Math.ceil((dateMs - Date.now()) / 1000));
+  }
+  return null;
+}
+
 export function createApiError(
   status: number,
   body: unknown,
   headers: Headers,
   rateLimit: RateLimitInfo | null,
 ): TungoApiError {
-  const retryHeader = headers.get('retry-after');
-  const retryAfterSec = retryHeader && !Number.isNaN(Number(retryHeader)) ? Number(retryHeader) : null;
+  const retryAfterSec = parseRetryAfterHeader(headers.get('retry-after'));
   let errorType = 'api_error';
   let errorCode: string | null = null;
+  let hint: string | null = null;
   let message = 'HTTP ' + status;
   let requestId = headers.get('x-request-id');
 
   if (body && typeof body === 'object') {
     const rec = body as Record<string, unknown>;
     if (typeof rec.request_id === 'string') requestId = rec.request_id;
+    if (typeof rec.hint === 'string') hint = rec.hint;
     if (rec.error && typeof rec.error === 'object') {
       const errObj = rec.error as Record<string, unknown>;
       if (typeof errObj.type === 'string') errorType = errObj.type;
       if (typeof errObj.code === 'string') errorCode = errObj.code;
       if (typeof errObj.message === 'string') message = errObj.message;
+      if (typeof errObj.hint === 'string') hint = errObj.hint;
+      if (typeof errObj.request_id === 'string' && !requestId) requestId = errObj.request_id;
     } else if (typeof rec.message === 'string') {
       message = rec.message;
     }
   }
 
-  const params = { message, status, errorType, errorCode, requestId, retryAfterSec, rateLimit, rawBody: body };
+  const params = { message, status, errorType, errorCode, hint, requestId, retryAfterSec, rateLimit, rawBody: body };
   switch (status) {
     case 400:
     case 422:
@@ -186,6 +257,19 @@ export function createApiError(
   }
 }
 
+export function redactHeaders(headers: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(headers)) {
+    const low = k.toLowerCase();
+    if (low === 'x-api-key' || low === 'authorization' || low === 'cookie' || low.includes('signature') || low.includes('secret')) {
+      out[k] = '[REDACTED]';
+    } else {
+      out[k] = v;
+    }
+  }
+  return out;
+}
+
 export interface InternalRequestSpec {
   query?: Record<string, unknown>;
   body?: unknown;
@@ -199,9 +283,15 @@ export interface InternalRequestSpec {
 export class HttpTransport {
   private readonly apiKey: string | undefined;
   private readonly baseUrl: string;
+  public readonly companyId: string | undefined;
+  public readonly workspaceId: string | undefined;
+  public readonly webhookSecret: string | undefined;
   private readonly timeoutMs: number;
   private readonly maxRetries: number;
   private readonly useBearerAuth: boolean;
+  private readonly debug: boolean;
+  private readonly onRequest?: (info: RequestHookInfo) => void;
+  private readonly onResponse?: (info: ResponseHookInfo) => void;
   private readonly fetchImpl: typeof globalThis.fetch;
   private readonly defaultHeaders: Record<string, string>;
   public lastRateLimit: RateLimitInfo | null = null;
@@ -209,11 +299,33 @@ export class HttpTransport {
   constructor(opts: TungoClientOptions = {}) {
     this.apiKey = opts.apiKey ?? process.env.TUNGO_API_KEY;
     this.baseUrl = (opts.baseUrl ?? process.env.TUNGO_BASE_URL ?? DEFAULT_BASE_URL).replace(/\/+$/, '');
+    this.companyId = opts.companyId ?? process.env.TUNGO_COMPANY_ID;
+    this.workspaceId = opts.workspaceId ?? process.env.TUNGO_WORKSPACE_ID;
+    this.webhookSecret = opts.webhookSecret ?? process.env.TUNGO_WEBHOOK_SECRET;
     this.timeoutMs = opts.timeoutMs ?? 30_000;
     this.maxRetries = opts.maxRetries ?? 3;
     this.useBearerAuth = opts.useBearerAuth ?? false;
+    this.debug = opts.debug ?? (process.env.TUNGO_DEBUG === '1' || process.env.TUNGO_DEBUG === 'true');
+    this.onRequest = opts.onRequest;
+    this.onResponse = opts.onResponse;
     this.fetchImpl = opts.fetch ?? globalThis.fetch;
     this.defaultHeaders = opts.defaultHeaders ?? {};
+  }
+
+  resolveCompanyId(explicit?: string): string {
+    const val = (explicit && explicit.trim()) || this.companyId;
+    if (!val) {
+      throw new TungoError('Не указан companyId (передайте co в метод, задайте companyId в TungoClient или переменную TUNGO_COMPANY_ID)');
+    }
+    return val;
+  }
+
+  resolveWorkspaceId(explicit?: string): string {
+    const val = (explicit && explicit.trim()) || this.workspaceId;
+    if (!val) {
+      throw new TungoError('Не указан workspaceId (передайте ws в метод, задайте workspaceId в TungoClient или переменную TUNGO_WORKSPACE_ID)');
+    }
+    return val;
   }
 
   private buildUrl(path: string, query?: Record<string, unknown>): string {
@@ -238,7 +350,7 @@ export class HttpTransport {
       ...this.defaultHeaders,
       ...(spec.options?.headers ?? {}),
     };
-    if (spec.auth === 'key') {
+    if (spec.auth === 'key' || spec.auth === 'bearer' || spec.auth === undefined) {
       if (!this.apiKey) {
         throw new TungoAuthError({
           message: 'Не задан ключ API (передайте apiKey в TungoClient или установите переменную окружения TUNGO_API_KEY)',
@@ -277,9 +389,19 @@ export class HttpTransport {
     return null;
   }
 
-  async request<T>(method: string, path: string, spec: InternalRequestSpec = {}): Promise<T> {
+  private computeDelayMs(attempt: number, retryAfterSec: number | null): number {
+    if (retryAfterSec !== null && retryAfterSec >= 0) {
+      return retryAfterSec * 1000;
+    }
+    const base = Math.min(250 * 2 ** (attempt - 1), 8000);
+    const jitter = 0.5 + Math.random() * 0.5;
+    return Math.round(base * jitter);
+  }
+
+  async requestRaw<T>(method: string, path: string, spec: InternalRequestSpec = {}): Promise<RawResponse<T>> {
     const url = this.buildUrl(path, spec.query);
     const idempotencyKey = spec.options?.idempotencyKey ?? (spec.idempotent ? randomUUID() : undefined);
+    const maxRetries = spec.options?.maxRetries ?? this.maxRetries;
     const canRetry = Boolean(spec.retrySafe || method === 'GET' || method === 'HEAD' || idempotencyKey);
     const bodyPayload = spec.rawBody !== undefined ? spec.rawBody : spec.body !== undefined ? JSON.stringify(spec.body) : undefined;
 
@@ -288,7 +410,19 @@ export class HttpTransport {
       const headers = this.buildHeaders(spec, idempotencyKey, 'application/json');
       const timeout = spec.options?.timeoutMs ?? this.timeoutMs;
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeout);
+      let timedOut = false;
+      const timer = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+      }, timeout);
+      const startedAt = Date.now();
+
+      if (this.onRequest) {
+        this.onRequest({ method, url, headers: redactHeaders(headers), attempt });
+      }
+      if (this.debug) {
+        console.debug('[tungo-sdk] -> ' + method + ' ' + url, redactHeaders(headers));
+      }
 
       try {
         const res = await this.fetchImpl(url, {
@@ -298,13 +432,29 @@ export class HttpTransport {
           signal: spec.options?.signal ?? controller.signal,
         });
         clearTimeout(timer);
+        const durationMs = Date.now() - startedAt;
         const rateLimit = this.extractRateLimit(res.headers);
+        const requestId = res.headers.get('x-request-id');
+
+        if (this.onResponse) {
+          this.onResponse({ method, url, status: res.status, durationMs, requestId });
+        }
+        if (this.debug) {
+          console.debug('[tungo-sdk] <- ' + res.status + ' ' + method + ' ' + url + ' (' + durationMs + 'ms, req=' + (requestId ?? '-') + ')');
+        }
+
+        const respHeaders: Record<string, string> = {};
+        res.headers.forEach((v, k) => {
+          respHeaders[k.toLowerCase()] = v;
+        });
 
         if (res.ok) {
-          if (res.status === 204) return undefined as T;
+          if (res.status === 204) {
+            return { data: undefined as T, status: 204, headers: respHeaders, requestId, rateLimit, rawBody: '' };
+          }
           const text = await res.text();
-          if (!text) return undefined as T;
-          return JSON.parse(text) as T;
+          const data = text ? (JSON.parse(text) as T) : (undefined as T);
+          return { data, status: res.status, headers: respHeaders, requestId, rateLimit, rawBody: text };
         }
 
         let errBody: unknown = null;
@@ -318,9 +468,9 @@ export class HttpTransport {
         }
         const apiErr = createApiError(res.status, errBody, res.headers, rateLimit);
 
-        if (canRetry && attempt < this.maxRetries && (res.status === 429 || res.status === 502 || res.status === 503 || res.status === 504)) {
+        if (canRetry && attempt < maxRetries && (res.status === 429 || res.status === 502 || res.status === 503 || res.status === 504)) {
           attempt++;
-          const delayMs = apiErr.retryAfterSec !== null ? apiErr.retryAfterSec * 1000 : Math.min(250 * 2 ** (attempt - 1), 4000);
+          const delayMs = this.computeDelayMs(attempt, apiErr.retryAfterSec);
           await new Promise((r) => setTimeout(r, delayMs));
           continue;
         }
@@ -328,14 +478,22 @@ export class HttpTransport {
       } catch (err) {
         clearTimeout(timer);
         if (err instanceof TungoError) throw err;
-        if (canRetry && attempt < this.maxRetries) {
+        if (canRetry && attempt < maxRetries && !spec.options?.signal?.aborted) {
           attempt++;
-          await new Promise((r) => setTimeout(r, Math.min(250 * 2 ** (attempt - 1), 4000)));
+          await new Promise((r) => setTimeout(r, this.computeDelayMs(attempt, null)));
           continue;
         }
-        throw new TungoError('Ошибка сети при обращении к Tungo API: ' + (err instanceof Error ? err.message : String(err)));
+        if (timedOut) {
+          throw new TungoTimeoutError('Превышен таймаут ожидания ответа Tungo API (' + timeout + ' мс)');
+        }
+        throw new TungoConnectionError('Ошибка сети при обращении к Tungo API: ' + (err instanceof Error ? err.message : String(err)));
       }
     }
+  }
+
+  async request<T>(method: string, path: string, spec: InternalRequestSpec = {}): Promise<T> {
+    const raw = await this.requestRaw<T>(method, path, spec);
+    return raw.data;
   }
 
   async *stream(method: string, path: string, spec: InternalRequestSpec = {}): AsyncGenerator<SSEEvent, void, unknown> {
@@ -426,6 +584,46 @@ export function parseSSEText(rawStream: string): SSEEvent[] {
   return out;
 }
 
+export interface AccumulatedChatStream {
+  text: string;
+  dialogId: string | null;
+  turnNo: number | null;
+  stopReason: string | null;
+  costTiyn: number | null;
+  proposals: unknown[];
+  events: SSEEvent[];
+}
+
+export async function accumulateChatStream(
+  events: AsyncIterable<SSEEvent> | Iterable<SSEEvent>,
+  onDelta?: (delta: string, event: SSEEvent) => void,
+): Promise<AccumulatedChatStream> {
+  let text = '';
+  let dialogId: string | null = null;
+  let turnNo: number | null = null;
+  let stopReason: string | null = null;
+  let costTiyn: number | null = null;
+  const proposals: unknown[] = [];
+  const allEvents: SSEEvent[] = [];
+
+  for await (const ev of events) {
+    allEvents.push(ev);
+    const data = ev.data && typeof ev.data === 'object' ? (ev.data as Record<string, unknown>) : null;
+    if ((ev.event === 'text' || ev.event === 'delta' || data?.type === 'text') && typeof data?.delta === 'string') {
+      text += data.delta;
+      if (onDelta) onDelta(data.delta, ev);
+    } else if (ev.event === 'proposal' || data?.type === 'proposal') {
+      proposals.push(data ?? ev.data);
+    } else if (ev.event === 'done' || data?.type === 'done') {
+      if (typeof data?.dialog_id === 'string') dialogId = data.dialog_id;
+      if (typeof data?.turn_no === 'number') turnNo = data.turn_no;
+      if (typeof data?.stop_reason === 'string') stopReason = data.stop_reason;
+      if (typeof data?.cost_tiyn === 'number') costTiyn = data.cost_tiyn;
+    }
+  }
+  return { text, dialogId, turnNo, stopReason, costTiyn, proposals, events: allEvents };
+}
+
 /** Утилиты проверки подписи исходящих вебхуков организации (Svix / Standard Webhooks). */
 export const TungoWebhooks = {
   verifySignature(
@@ -435,17 +633,18 @@ export const TungoWebhooks = {
     toleranceSec = 300,
     nowSec = Math.floor(Date.now() / 1000),
   ): boolean {
-    const getHeader = (name: string): string | undefined => {
+    const getHeader = (...names: string[]): string | undefined => {
       for (const [k, v] of Object.entries(headers)) {
-        if (k.toLowerCase() === name.toLowerCase()) {
+        const low = k.toLowerCase();
+        if (names.includes(low)) {
           return Array.isArray(v) ? v[0] : v;
         }
       }
       return undefined;
     };
-    const msgId = getHeader('webhook-id');
-    const msgTs = getHeader('webhook-timestamp');
-    const msgSig = getHeader('webhook-signature');
+    const msgId = getHeader('webhook-id', 'svix-id');
+    const msgTs = getHeader('webhook-timestamp', 'svix-timestamp');
+    const msgSig = getHeader('webhook-signature', 'svix-signature');
     if (!msgId || !msgTs || !msgSig) return false;
 
     const tsNum = Number(msgTs);
@@ -477,18 +676,27 @@ export const TungoWebhooks = {
     nowSec = Math.floor(Date.now() / 1000),
   ): T {
     if (!TungoWebhooks.verifySignature(rawBody, headers, secret, toleranceSec, nowSec)) {
-      throw new TungoError('Подпись вебхука не прошла проверку (webhook-signature)');
+      throw new TungoError('Подпись вебхука не прошла проверку (webhook-signature / svix-signature)');
     }
     const bodyStr = typeof rawBody === 'string' ? rawBody : rawBody.toString('utf8');
     return JSON.parse(bodyStr) as T;
   },
 };
 
-/** Утилиты подписи входящих хуков автоматизаций (/hooks/{token}, HMAC-SHA256). */
+/** Утилиты подписи и проверки входящих хуков автоматизаций (/hooks/{token}, HMAC-SHA256). */
 export const TungoHooks = {
   signPayload(rawBody: string | Buffer, secret: string, prefix = true): string {
     const hex = createHmac('sha256', secret).update(rawBody).digest('hex');
     return prefix ? 'sha256=' + hex : hex;
+  },
+
+  verifySignature(rawBody: string | Buffer, signatureHeader: string, secret: string): boolean {
+    const trimmed = signatureHeader.trim().toLowerCase();
+    const cleanHex = trimmed.startsWith('sha256=') ? trimmed.slice('sha256='.length) : trimmed;
+    const expectedHex = createHmac('sha256', secret).update(rawBody).digest('hex').toLowerCase();
+    const a = Buffer.from(cleanHex, 'utf8');
+    const b = Buffer.from(expectedHex, 'utf8');
+    return a.length === b.length && timingSafeEqual(a, b);
   },
 };
 
@@ -500,12 +708,33 @@ export const TungoMoney = {
   toTenge(tiyn: number): number {
     return tiyn / 100;
   },
-  formatTiyn(tiyn: number): string {
+  formatTiyn(tiyn: number, currency = 'KZT'): string {
+    const cur = (currency || 'KZT').trim().toUpperCase();
+    const symbol = cur === '' || cur === 'KZT' ? '₸' : cur === 'USD' ? '$' : cur === 'EUR' ? '€' : cur === 'RUB' ? '₽' : cur;
     const sign = tiyn < 0 ? '-' : '';
     const abs = Math.abs(Math.trunc(tiyn));
     const whole = Math.floor(abs / 100);
     const frac = String(abs % 100).padStart(2, '0');
     const wholeStr = String(whole).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-    return sign + wholeStr + ',' + frac + ' ₸';
+    return sign + wholeStr + ',' + frac + ' ' + symbol;
+  },
+};
+
+/** Утилиты для реквизитов Республики Казахстан (проверка 12-значного БИН и ИИН с контрольным разрядом). */
+export const TungoKazakhstan = {
+  isValidBinIin(value: string): boolean {
+    if (typeof value !== 'string' || !/^\d{12}$/.test(value)) return false;
+    const digits = Array.from(value, (c) => Number(c));
+    const w1 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+    let sum = 0;
+    for (let i = 0; i < 11; i++) sum += digits[i] * w1[i];
+    let rem = sum % 11;
+    if (rem === 10) {
+      const w2 = [3, 4, 5, 6, 7, 8, 9, 10, 11, 1, 2];
+      sum = 0;
+      for (let i = 0; i < 11; i++) sum += digits[i] * w2[i];
+      rem = sum % 11;
+    }
+    return rem < 10 && rem === digits[11];
   },
 };
