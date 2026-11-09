@@ -1,0 +1,58 @@
+name: Publish to npm
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Package version (e.g. 0.1.0)'
+        required: false
+        default: '0.1.0'
+
+permissions:
+  contents: write
+  id-token: write
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Sync version from tag
+        run: |
+          if [[ "${GITHUB_REF_NAME}" == v* ]]; then
+            VER="${GITHUB_REF_NAME#v}"
+            npm version "${VER}" --no-git-tag-version --allow-same-version
+          elif [[ -n "${{ github.event.inputs.version }}" ]]; then
+            npm version "${{ github.event.inputs.version }}" --no-git-tag-version --allow-same-version
+          fi
+
+      - name: Install dependencies & build
+        run: |
+          npm install
+          npm run build
+          npm test
+
+      - name: Pack tarball & create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TARBALL=$(npm pack)
+          gh release create "${GITHUB_REF_NAME}" "${TARBALL}" --generate-notes --title "${GITHUB_REF_NAME}" || true
+
+      - name: Publish to npmjs.org
+        if: env.NPM_TOKEN != ''
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public

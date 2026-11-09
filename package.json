@@ -3,6 +3,16 @@
   "version": "0.1.0",
   "description": "Official TypeScript / Node.js SDK for Tungo AI Platform API (1C AI Accountant, Automations, Webhooks)",
   "license": "MIT",
+  "homepage": "https://tungo.kz",
+  "keywords": [
+    "tungo",
+    "tungo-ai",
+    "1c",
+    "accounting",
+    "kazakhstan",
+    "sdk",
+    "api"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -14,18 +24,32 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "src",
+    "README.md",
+    "LICENSE"
   ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "engines": {
     "node": ">=20"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --test tests/sdk.test.ts"
+    "test": "node --test tests/sdk.test.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.3"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/TungoAI/tungo-sdk-typescript"
+    "url": "git+https://github.com/TungoAI/tungo-sdk-typescript.git"
+  },
+  "bugs": {
+    "url": "https://github.com/TungoAI/tungo-sdk-typescript/issues"
   }
 }

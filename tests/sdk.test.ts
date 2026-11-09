@@ -15,7 +15,7 @@ import {
 } from '../src/index.ts';
 
 const vectors = JSON.parse(
-  readFileSync(new URL('../../tungo-sdkgen/conformance/vectors.json', import.meta.url), 'utf8'),
+  readFileSync(new URL('../conformance/vectors.json', import.meta.url), 'utf8'),
 );
 
 describe('Tungo TypeScript SDK conformance & ergonomics', () => {
