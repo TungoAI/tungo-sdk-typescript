@@ -1,0 +1,31 @@
+{
+  "name": "@tungo/sdk",
+  "version": "0.1.0",
+  "description": "Official TypeScript / Node.js SDK for Tungo AI Platform API (1C AI Accountant, Automations, Webhooks)",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test tests/sdk.test.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TungoAI/tungo-sdk-typescript"
+  }
+}
