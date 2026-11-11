@@ -35,7 +35,7 @@ const shipped = packed[0].files.map((f) => f.path);
 for (const needed of ['package.json', 'README.md', 'LICENSE', 'CHANGELOG.md', 'dist/esm/index.js', 'dist/esm/index.d.ts', 'dist/esm/package.json', 'dist/cjs/index.js', 'dist/cjs/index.d.ts', 'dist/cjs/package.json']) {
   if (!shipped.includes(needed)) throw new Error('the tarball lacks ' + needed);
 }
-const stray = shipped.filter((p) => !p.startsWith('dist/') && !['package.json', 'README.md', 'LICENSE', 'CHANGELOG.md'].includes(p));
+const stray = shipped.filter((p) => !p.startsWith('dist/') && !['package.json', 'README.md', 'README.ru.md', 'README.kk.md', 'LICENSE', 'CHANGELOG.md'].includes(p));
 if (stray.length > 0) throw new Error('the tarball contains unexpected files: ' + stray.join(', '));
 
 step('install the tarball into a clean project');
