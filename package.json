@@ -1,31 +1,46 @@
 {
-  "name": "@tungo/sdk",
-  "version": "0.1.0",
-  "description": "Official TypeScript / Node.js SDK for Tungo AI Platform API (1C AI Accountant, Automations, Webhooks)",
+  "name": "@tungoai/sdk",
+  "version": "0.2.0",
+  "description": "Official TypeScript SDK for the Tungo Platform API",
   "license": "MIT",
-  "homepage": "https://tungo.kz",
+  "homepage": "https://github.com/TungoAI/tungo-sdk-typescript#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TungoAI/tungo-sdk-typescript.git"
+  },
+  "bugs": {
+    "url": "https://github.com/TungoAI/tungo-sdk-typescript/issues"
+  },
   "keywords": [
     "tungo",
     "tungo-ai",
-    "1c",
     "accounting",
     "kazakhstan",
     "sdk",
     "api"
   ],
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/cjs/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
-    "src",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "publishConfig": {
@@ -36,20 +51,19 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --test tests/sdk.test.ts",
-    "prepublishOnly": "npm run build"
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "node scripts/test.mjs",
+    "test:package": "node scripts/test-package.mjs",
+    "prepack": "node scripts/build.mjs"
   },
   "devDependencies": {
-    "@types/node": "^22.10.0",
-    "typescript": "^5.7.3"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/TungoAI/tungo-sdk-typescript.git"
-  },
-  "bugs": {
-    "url": "https://github.com/TungoAI/tungo-sdk-typescript/issues"
+    "@eslint/js": "^9.39.0",
+    "@types/node": "^20.19.0",
+    "esbuild": "^0.25.12",
+    "eslint": "^9.39.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.0"
   }
 }
