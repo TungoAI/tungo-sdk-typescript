@@ -273,9 +273,36 @@ describe('conformance vectors', () => {
     }
   });
 
+  it('chat_stream_replay: a JSON answer that is not a replay stays a DecodeError', async () => {
+    const plain = vectors.chat_stream_replay.filter((c) => c.expect.decode_error === true);
+    assert.ok(plain.length >= 1);
+    for (const c of plain) {
+      await withServer(
+        (_request, response) => {
+          response.writeHead(c.status, c.headers);
+          response.end(JSON.stringify(c.body));
+        },
+        async (server) => {
+          const err = await server.client().chat.stream('co_1', { message: 'q' }).then(
+            () => null,
+            (error: unknown) => error,
+          );
+          assert.ok(err instanceof DecodeError, c.name + ': ' + String(err));
+          assert.equal(err.status, c.status, c.name);
+        },
+      );
+    }
+  });
+
   it('chat_stream', async () => {
     assert.ok(vectors.chat_stream.length >= 7);
-    for (const c of vectors.chat_stream) {
+    // A turn repeated with the same Idempotency-Key is answered with its stored JSON result: the
+    // stream must yield the same turn as the vector expects.
+    const replays = vectors.chat_stream_replay.flatMap((c) =>
+      c.expect.decode_error === true ? [] : [{ name: c.name, status: c.status, headers: c.headers, raw: JSON.stringify(c.body), expect: c.expect }],
+    );
+    assert.ok(replays.length >= 3);
+    for (const c of [...vectors.chat_stream, ...replays]) {
       await withServer(
         (_request, response) => {
           response.writeHead(c.status, c.headers);

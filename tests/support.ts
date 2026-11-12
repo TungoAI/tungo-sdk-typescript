@@ -221,6 +221,13 @@ export interface Vectors {
       error: WireError | null;
     };
   }>;
+  chat_stream_replay: Array<{
+    name: string;
+    status: number;
+    headers: Record<string, string>;
+    body: unknown;
+    expect: { decode_error: true } | (Vectors['chat_stream'][number]['expect'] & { decode_error?: undefined });
+  }>;
 }
 
 export const vectors = JSON.parse(readFileSync(new URL('../../conformance/vectors.json', import.meta.url), 'utf8')) as Vectors;

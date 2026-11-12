@@ -150,6 +150,74 @@ export interface WithResponse<T> {
 }
 
 /** Reads an environment variable on Node.js, Bun and Deno; undefined elsewhere or when empty. */
+/** Whether a stream call was answered with a stored result replayed by Idempotency-Key. */
+function isReplayedJSON(headers: Headers): boolean {
+  const mediaType = (headers.get('content-type') ?? '').split(';')[0] ?? '';
+  return mediaType.trim().toLowerCase() === 'application/json' && (headers.get('idempotent-replayed') ?? '').trim().toLowerCase() === 'true';
+}
+
+type JSONObject = Record<string, unknown>;
+
+function isObject(value: unknown): value is JSONObject {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Turns a replayed ChatTurnResult into the event stream of the turn it stands for: text (the
+ * answer), proposal, question, citation, error and choice events, then done. The dialog id and
+ * the turn number, which a replay carries only in the body, become the X-Dialog-Id and X-Turn-No
+ * headers when they are missing: `headers` are those of the response with them, the other headers
+ * (Idempotent-Replayed among them) unchanged. Returns null when the body is not a chat turn result.
+ */
+function replayAsEventStream(response: Response, text: string, requestId: string | null): { response: Response; headers: Headers } | null {
+  let result: unknown;
+  try {
+    result = parseJSON(text);
+  } catch {
+    return null;
+  }
+  if (!isObject(result)) return null;
+  const dialogId = result['dialog_id'];
+  if (typeof dialogId !== 'string') return null;
+  const headers = new Headers(response.headers);
+  if ((headers.get('x-dialog-id') ?? '') === '') headers.set('x-dialog-id', dialogId);
+  const turnNo = result['turn_no'];
+  if ((headers.get('x-turn-no') ?? '') === '' && (typeof turnNo === 'number' || typeof turnNo === 'bigint')) headers.set('x-turn-no', String(turnNo));
+  const entries = (key: string): JSONObject[] => {
+    const list = result[key];
+    return Array.isArray(list) ? list.filter(isObject) : [];
+  };
+  let body = '';
+  const emit = (type: string, event: JSONObject): void => {
+    body += 'event: ' + type + '\ndata: ' + stringifyJSON({ ...event, type }) + '\n\n';
+  };
+  const answerValue = result['answer'];
+  const answer = typeof answerValue === 'string' ? answerValue : '';
+  if (answer !== '') emit('text', { delta: answer });
+  for (const { id, ...rest } of entries('proposals')) emit('proposal', { ...rest, proposal_id: id });
+  for (const question of entries('questions')) emit('question', question);
+  for (const citation of entries('citations')) emit('citation', citation);
+  for (const error of entries('errors')) emit('error', { error, request_id: requestId });
+  const done: JSONObject = { answer };
+  const stopReason = result['stop_reason'];
+  if (typeof stopReason === 'string') done['stop_reason'] = stopReason;
+  const usageValue = result['usage'];
+  if (isObject(usageValue)) {
+    const { cost_tiyn: cost, ...usage } = usageValue;
+    done['usage'] = usage;
+    if (cost !== undefined) done['cost_tiyn'] = cost;
+  }
+  const pending = result['pending_question'];
+  if (isObject(pending)) {
+    emit('choice', pending);
+    done['choice_id'] = pending['choice_id'];
+  }
+  emit('done', done);
+  const streamHeaders = new Headers(headers);
+  streamHeaders.set('content-type', 'text/event-stream');
+  return { response: new Response(body, { status: response.status, headers: streamHeaders }), headers };
+}
+
 export function readEnv(name: string): string | undefined {
   try {
     const scope = globalThis as {
@@ -682,6 +750,24 @@ export class APIClient {
           attempts: attempt + 1,
         };
         if (response.status >= 200 && response.status < 300) {
+          if (stream && isReplayedJSON(response.headers)) {
+            // A chat turn repeated with the same Idempotency-Key after it finished: the server
+            // answers the stored ChatTurnResult instead of a stream. The caller gets its events.
+            const replayed = await response.text();
+            const synthesized = replayAsEventStream(response, replayed, info.requestId);
+            if (synthesized === null) {
+              throw new DecodeError('The response of ' + route + ' (status ' + response.status + ') replays a result that is not a chat turn', {
+                status: response.status,
+                requestId: info.requestId,
+                body: replayed,
+              });
+            }
+            info.headers = synthesized.headers;
+            keepOpen = true;
+            clearTimeout(timer);
+            this.#log({ kind: 'response', method, route: spec.path, attempt: attempt + 1, status: info.status, durationMs: Date.now() - started, requestId: info.requestId });
+            return { info, text: '', response: synthesized.response, controller, detach };
+          }
           if (stream) {
             const contentType = (response.headers.get('content-type') ?? '').trim().toLowerCase();
             if (!contentType.startsWith('text/event-stream')) {
