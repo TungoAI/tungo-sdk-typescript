@@ -190,7 +190,7 @@ export interface Vectors {
     jitter_max: number;
     cases: Array<{ name: string; attempt: number; expect: { min_seconds: number; max_seconds: number } }>;
   };
-  retry_policy: Array<{ name: string; method: string; idempotency_key: boolean; cause: number | 'connection_error' | 'timeout'; expect: { retry: boolean } }>;
+  retry_policy: Array<{ name: string; method: string; idempotency_key: boolean; caller_key?: boolean; cause: number | 'connection_error' | 'timeout'; expect: { retry: boolean } }>;
   path_segment: Array<{ name: string; input: string; expect: { encoded?: string; error?: boolean } }>;
   query: Array<{
     name: string;

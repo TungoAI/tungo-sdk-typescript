@@ -551,13 +551,16 @@ describe('retries', () => {
         assert.ok((await rejection(client.webhooks.updateEndpoint('ws', 'ep', {}))) instanceof UnavailableError);
         assert.equal(server.requests.length, 1);
         assert.equal(server.requests[0]?.headers['idempotency-key'], undefined);
-        // The caller's own key makes the same call repeatable.
+        // The API ignores a caller's key there: it is not sent and does not make the call repeatable.
         assert.ok((await rejection(client.webhooks.updateEndpoint('ws', 'ep', {}, { idempotencyKey: 'my-key-1' }))) instanceof UnavailableError);
-        assert.equal(server.requests.length, 4);
-        assert.deepEqual(
-          server.requests.slice(1).map((r) => r.headers['idempotency-key']),
-          ['my-key-1', 'my-key-1', 'my-key-1'],
+        assert.equal(server.requests.length, 2);
+        assert.equal(server.requests[1]?.headers['idempotency-key'], undefined);
+        // The same for a POST that would queue paid trial runs again, also with the raw header.
+        await rejection(
+          client.automations.testHook('co', 'hook_1', { body: {}, run: true }, { idempotencyKey: 't-1', headers: { 'Idempotency-Key': 't-2' } }),
         );
+        assert.equal(server.requests.length, 3);
+        assert.equal(server.requests[2]?.headers['idempotency-key'], undefined);
       },
     );
     await withServer(

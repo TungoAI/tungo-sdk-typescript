@@ -99,7 +99,10 @@ export interface RequestOptions {
   maxRetries?: number | undefined;
   /** Extra headers; a null value removes a default header. */
   headers?: Record<string, string | null | undefined> | undefined;
-  /** Your own `Idempotency-Key`. Without it the SDK generates one for operations that declare the header. */
+  /**
+   * Your own `Idempotency-Key` for an operation that declares the header (without it the SDK
+   * generates one). Other operations do not send it and are not retried because of it.
+   */
   idempotencyKey?: string | undefined;
   /** Cancels the request (and its retries and waits). It is combined with the timeout. */
   signal?: AbortSignal | undefined;
@@ -589,11 +592,17 @@ export class APIClient {
       if (this.#bearer) bag.set('Authorization', 'Bearer ' + key);
       else bag.set('x-api-key', key);
     }
-    const headerName = spec.idempotencyHeader ?? 'Idempotency-Key';
+    if (options.idempotencyKey === '') throw new ValidationError('The idempotency key must not be empty');
+    const headerName = spec.idempotencyHeader;
+    if (headerName === undefined) {
+      // The API ignores a key on an operation that declares none: sending one would make a retry
+      // look safe when it repeats the action.
+      bag.delete('Idempotency-Key');
+      return { headers: bag.toRecord(), hasIdempotencyKey: false };
+    }
     if (options.idempotencyKey !== undefined) {
-      if (options.idempotencyKey === '') throw new ValidationError('The idempotency key must not be empty');
       bag.set(headerName, options.idempotencyKey);
-    } else if (spec.idempotencyHeader !== undefined && !bag.has(headerName)) {
+    } else if (!bag.has(headerName)) {
       bag.set(headerName, spec.defaultIdempotencyKey !== undefined && spec.defaultIdempotencyKey !== '' ? spec.defaultIdempotencyKey : uuid4());
     }
     return { headers: bag.toRecord(), hasIdempotencyKey: bag.has(headerName) };
