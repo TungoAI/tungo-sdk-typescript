@@ -268,7 +268,12 @@ export function sendHook<R>(client: APIClient, operation: HookOperation, token: 
       headers,
       auth: 'hook',
       idempotencyHeader: operation.idempotencyHeader,
-      options: requestOptions,
+      // The backend takes the id of a hook event from Idempotency-Key before X-Event-Id, so a random
+      // key would override the caller's event id: the event id is the default key.
+      options:
+        eventId !== undefined && eventId !== '' && requestOptions.idempotencyKey === undefined && operation.idempotencyHeader !== undefined
+          ? { ...requestOptions, idempotencyKey: eventId }
+          : requestOptions,
     };
   };
   return new APIPromise<R>(run().then((spec) => client.request<R>(spec).withResponse()));

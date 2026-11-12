@@ -105,6 +105,27 @@ describe('incoming hooks', () => {
     );
   });
 
+  it('the event id is the Idempotency-Key unless one is given', async () => {
+    // The backend reads Idempotency-Key before X-Event-Id: a random key would make a resend of the
+    // same event (after a timeout or a restart, with a changed body) a new event.
+    await withServer(
+      (_request, response) => {
+        sendJSON(response, 202, { accepted: true });
+      },
+      async (server) => {
+        const client = server.client();
+        await client.sendHook('tok', { n: 1 }, { eventId: 'pay_42' });
+        await client.automations.postHook('tok', { n: 2 }, { eventId: 'pay_42' });
+        await client.sendHook('tok', { n: 3 }, { eventId: 'pay_42', idempotencyKey: 'own' });
+        const [a, b, c] = server.requests;
+        assert.ok(a !== undefined && b !== undefined && c !== undefined);
+        assert.deepEqual([a.headers['idempotency-key'], a.headers['x-event-id']], ['pay_42', 'pay_42']);
+        assert.deepEqual([b.headers['idempotency-key'], b.headers['x-event-id']], ['pay_42', 'pay_42']);
+        assert.deepEqual([c.headers['idempotency-key'], c.headers['x-event-id']], ['own', 'pay_42']);
+      },
+    );
+  });
+
   it('sends text and bytes exactly as given', async () => {
     await withServer(
       (_request, response) => {
