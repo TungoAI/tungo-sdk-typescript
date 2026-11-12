@@ -117,11 +117,19 @@ describe('incoming hooks', () => {
         await client.sendHook('tok', { n: 1 }, { eventId: 'pay_42' });
         await client.automations.postHook('tok', { n: 2 }, { eventId: 'pay_42' });
         await client.sendHook('tok', { n: 3 }, { eventId: 'pay_42', idempotencyKey: 'own' });
-        const [a, b, c] = server.requests;
-        assert.ok(a !== undefined && b !== undefined && c !== undefined);
+        // A key given as a header, per request or in the client's default headers, also wins.
+        await client.sendHook('tok', { n: 4 }, { eventId: 'pay_42', headers: { 'Idempotency-Key': 'header' } });
+        await server.client({ defaultHeaders: { 'Idempotency-Key': 'default' } }).sendHook('tok', { n: 5 }, { eventId: 'pay_42' });
+        await client.sendHook('tok', { n: 6 }, { eventId: '' });
+        const [a, b, c, d, e, f] = server.requests;
+        assert.ok(a !== undefined && b !== undefined && c !== undefined && d !== undefined && e !== undefined && f !== undefined);
         assert.deepEqual([a.headers['idempotency-key'], a.headers['x-event-id']], ['pay_42', 'pay_42']);
         assert.deepEqual([b.headers['idempotency-key'], b.headers['x-event-id']], ['pay_42', 'pay_42']);
         assert.deepEqual([c.headers['idempotency-key'], c.headers['x-event-id']], ['own', 'pay_42']);
+        assert.deepEqual([d.headers['idempotency-key'], d.headers['x-event-id']], ['header', 'pay_42']);
+        assert.deepEqual([e.headers['idempotency-key'], e.headers['x-event-id']], ['default', 'pay_42']);
+        // An empty event id falls back to a random key.
+        assert.match(String(f.headers['idempotency-key']), /^[0-9a-f-]{36}$/);
       },
     );
   });

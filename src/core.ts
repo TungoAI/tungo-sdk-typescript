@@ -128,6 +128,11 @@ export interface RequestSpec {
   auth?: 'key' | 'public' | 'hook' | undefined;
   /** Wire name of the idempotency header when the operation declares one. */
   idempotencyHeader?: string | undefined;
+  /**
+   * Key sent in the idempotency header when the caller gives none (neither `idempotencyKey` nor the
+   * header itself, per request or in the client's default headers). Default: a random UUID.
+   */
+  defaultIdempotencyKey?: string | undefined;
   /** Use the long-running timeout by default. */
   longRunning?: boolean | undefined;
   /** The success response has no body. */
@@ -589,7 +594,7 @@ export class APIClient {
       if (options.idempotencyKey === '') throw new ValidationError('The idempotency key must not be empty');
       bag.set(headerName, options.idempotencyKey);
     } else if (spec.idempotencyHeader !== undefined && !bag.has(headerName)) {
-      bag.set(headerName, uuid4());
+      bag.set(headerName, spec.defaultIdempotencyKey !== undefined && spec.defaultIdempotencyKey !== '' ? spec.defaultIdempotencyKey : uuid4());
     }
     return { headers: bag.toRecord(), hasIdempotencyKey: bag.has(headerName) };
   }
