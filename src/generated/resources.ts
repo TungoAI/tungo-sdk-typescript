@@ -133,6 +133,22 @@ export interface ChatListParams {
   limit?: number | undefined;
 }
 
+/** Query parameters of `chat.listMentions`. */
+export interface ChatListMentionsParams {
+  /** Сколько на каждый вид: 1–20, по умолчанию 8 */
+  limit?: number | undefined;
+  /** Что ищем: часть номера, названия, имени; у контрагента — от 2 знаков (или БИН цифрами). Пусто — свежие предложения и задания */
+  q?: string | undefined;
+  /** Виды через запятую; по умолчанию все. `proposal` — предложение (документ для 1С), id — его номер P-000123; `counterparty` — контрагент из 1С компании, id — его ссылка из поиска; `batch` — задание пачки (разбор выписки, в… */
+  types?: string | undefined;
+}
+
+/** Query parameters of `chat.listSuggestions`. */
+export interface ChatListSuggestionsParams {
+  /** Язык текстов — язык интерфейса кабинета. Не передан — язык ответов ИИ из профиля (`kk` — по-казахски, иначе по-русски) */
+  lang?: T.ListCompanyChatSuggestionsLang | undefined;
+}
+
 /** Query parameters of `chat.listEvents`. */
 export interface ChatListEventsParams {
   /** Номер хода (X-Turn-No), к которому переподключиться; без него — к текущему */
@@ -141,6 +157,10 @@ export interface ChatListEventsParams {
 
 /** Query parameters of `proposals.list`. */
 export interface ProposalsListParams {
+  /** true — только отправленные на одобрение и ещё не решённые; false — только остальные */
+  approval_requested?: T.ListCompanyProposalsApprovalRequested | undefined;
+  /** Только документы одного задания пачки (bat_…) — тот же состав, что в сводке задания и у «Одобрить и отправить в 1С». Не id задания — 400; задания нет — пустой список */
+  batch_id?: string | undefined;
   /** next_cursor из ответа прошлой страницы; без него — первая (самая свежая) страница. Остальные фильтры — те же, что у первой страницы. */
   cursor?: string | undefined;
   /** Созданные не раньше этого дня (ГГГГ-ММ-ДД, день по Алматы) */
@@ -151,8 +171,10 @@ export interface ProposalsListParams {
   kind?: string | undefined;
   /** Сколько на странице: 1–100, по умолчанию 20 */
   limit?: number | undefined;
-  /** Поиск без учёта регистра: номер предложения (P-…), номер документа 1С, контрагент (имя из превью), БИН/ИИН и другие реквизиты документа */
+  /** Поиск без учёта регистра: номер предложения (P-…), номер документа 1С, контрагент (имя из превью), БИН/ИИН, сумма (как пишут: «150 000,50» или 150000.5) и другие реквизиты документа */
   q?: string | undefined;
+  /** Только из этих источников (origin.source): один или несколько через запятую (chat, statement, esf, automation). Неизвестный — 400 */
+  source?: string | undefined;
   /** Только в этих статусах: один или несколько через запятую (previewed, approved, rejected, committed, posted, verified, mismatch, failed); без него — все. Неизвестный — 400 */
   status?: string | undefined;
 }
@@ -705,6 +727,28 @@ export class ChatResource {
   }
 
   /**
+   * Что можно упомянуть через «@»
+   *
+   * `GET /v1/companies/{co}/chat/mentions`
+   *
+   * Required permission: `chat.use`.
+   */
+  listMentions(co: string, query?: ChatListMentionsParams, options?: RequestOptions): APIPromise<T.ChatMentionSearch> {
+    return this.#client.request<T.ChatMentionSearch>({ method: 'GET', path: '/v1/companies/{co}/chat/mentions', pathParams: { co }, query, options });
+  }
+
+  /**
+   * Подсказки пустого чата
+   *
+   * `GET /v1/companies/{co}/chat/suggestions`
+   *
+   * Required permission: `chat.use`.
+   */
+  listSuggestions(co: string, query?: ChatListSuggestionsParams, options?: RequestOptions): APIPromise<T.ChatSuggestions> {
+    return this.#client.request<T.ChatSuggestions>({ method: 'GET', path: '/v1/companies/{co}/chat/suggestions', pathParams: { co }, query, options });
+  }
+
+  /**
    * Разговор целиком
    *
    * `GET /v1/companies/{co}/chat/{id}`
@@ -858,6 +902,17 @@ export class ProposalsResource {
    */
   reject(co: string, id: string, body: T.RejectRequest, options?: RequestOptions): APIPromise<T.ProposalDecision> {
     return this.#client.request<T.ProposalDecision>({ method: 'POST', path: '/v1/companies/{co}/proposals/{id}/reject', pathParams: { co, id }, body, options });
+  }
+
+  /**
+   * Отправить на одобрение
+   *
+   * `POST /v1/companies/{co}/proposals/{id}/request-approval`
+   *
+   * Required permission: `proposals.create`.
+   */
+  requestApproval(co: string, id: string, body?: T.ProposalApprovalRequestBody, options?: RequestOptions): APIPromise<T.ProposalApprovalRequestResult> {
+    return this.#client.request<T.ProposalApprovalRequestResult>({ method: 'POST', path: '/v1/companies/{co}/proposals/{id}/request-approval', pathParams: { co, id }, body, options });
   }
 }
 

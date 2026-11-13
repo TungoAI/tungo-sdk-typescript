@@ -1,6 +1,6 @@
 {
   "name": "@tungoai/sdk",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Official TypeScript SDK for the Tungo Platform API",
   "license": "MIT",
   "homepage": "https://github.com/TungoAI/tungo-sdk-typescript#readme",

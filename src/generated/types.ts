@@ -14,7 +14,7 @@ export interface ApiKey {
   all_companies: boolean;
   /** С каких IP и подсетей CIDR ключ работает; с другого адреса — 403 ip_not_allowed. null — с любых */
   allowed_ips: string[] | null;
-  /** Компании, к которым ключ даёт доступ (co_…); пусто у ключа на все компании (all_companies) */
+  /** Компании, к которым ключ даёт доступ (co_…); пусто у ключа на все компании (all_companies) и у ключа без компаний (no_companies) */
   company_ids: string[];
   /** Когда выпущен, ISO 8601 UTC */
   created_at: string;
@@ -34,6 +34,8 @@ export interface ApiKey {
   monthly_cap_tiyn: number | bigint | null;
   /** Название ключа для людей */
   name: string;
+  /** Ключ без доступа к компаниям и их 1С: company_ids пуст, all_companies = false; компаний не видит никогда. Пустой company_ids сам по себе вида не называет — смотреть на all_companies и no_companies */
+  no_companies: boolean;
   /** Права ключа: `company.read` — читать данные компаний (есть всегда); `chat.use` — работать с ИИ-бухгалтером; `proposals.create` — готовить документы для 1С; `proposals.approve` — одобрять запись в 1С; `automations.read` —… */
   permissions: ApiKeyPermissionItem[];
   /** Открытая часть ключа для показа — узнать ключ среди других; сам ключ (tg_…_секрет) целиком не хранится */
@@ -68,8 +70,10 @@ export interface ApiKeyCreate {
   monthly_cap_tiyn?: number | bigint | null;
   /** Название ключа для людей (1–100 знаков): где он используется */
   name: string;
+  /** Ключ без доступа к компаниям и их 1С: ни одной компании он не видит — ни сейчас, ни будущих; company_ids и all_companies не передаются, права — только company.read (он ничего не открывает). По умолчанию false */
+  no_companies?: boolean;
   /** Права ключа (1–20): `company.read` — читать данные компаний (добавляется всегда, даже если не передано); `chat.use` — работать с ИИ-бухгалтером; `proposals.create` — готовить документы для 1С; `proposals.approve` — одобр… */
-  permissions: string[];
+  permissions?: string[];
   /** Предел записи в 1С по ключу: какие виды документов ключ может одобрять (как kinds правила автоодобрения: sale, purchase, bank_receipt, bank_payment, counterparty, contract, inventory_writeoff, cash_order_in, cash_order_o… */
   write_kinds?: ApiKeyCreateWriteKindItem[] | null;
   /** Предел записи в 1С по ключу: сумма всех документов, одобренных ключом за день по Алматы, в тиынах. Документ с неизвестным исходом записи (1С не ответила) тоже считается. null — без предела. При изменении: не передан — не… */
@@ -86,7 +90,7 @@ export interface ApiKeyCreated {
   all_companies: boolean;
   /** С каких IP и подсетей CIDR ключ работает; с другого адреса — 403 ip_not_allowed. null — с любых */
   allowed_ips: string[] | null;
-  /** Компании, к которым ключ даёт доступ (co_…); пусто у ключа на все компании (all_companies) */
+  /** Компании, к которым ключ даёт доступ (co_…); пусто у ключа на все компании (all_companies) и у ключа без компаний (no_companies) */
   company_ids: string[];
   /** Когда выпущен, ISO 8601 UTC */
   created_at: string;
@@ -110,6 +114,8 @@ export interface ApiKeyCreated {
   monthly_cap_tiyn: number | bigint | null;
   /** Название ключа для людей */
   name: string;
+  /** Ключ без доступа к компаниям и их 1С: company_ids пуст, all_companies = false; компаний не видит никогда. Пустой company_ids сам по себе вида не называет — смотреть на all_companies и no_companies */
+  no_companies: boolean;
   /** Права ключа: `company.read` — читать данные компаний (есть всегда); `chat.use` — работать с ИИ-бухгалтером; `proposals.create` — готовить документы для 1С; `proposals.approve` — одобрять запись в 1С; `automations.read` —… */
   permissions: ApiKeyCreatedPermissionItem[];
   /** Открытая часть ключа для показа — узнать ключ среди других; сам ключ (tg_…_секрет) целиком не хранится */
@@ -145,7 +151,7 @@ export interface ApiKeyDetails {
   allowed_ips: string[] | null;
   /** Почему ключ сейчас не сработает — тот же код, что вернул бы отказ; null — всё хорошо. Вызов ИИ оценивается средней ценой, настоящая цена может быть выше. Ограничение по адресу (allowed_ips) здесь не проверяется: оно своё… */
   blocked_reason: ApiKeyDetailsBlockedReason | null;
-  /** Компании, к которым ключ даёт доступ (co_…); пусто у ключа на все компании (all_companies) */
+  /** Компании, к которым ключ даёт доступ (co_…); пусто у ключа на все компании (all_companies) и у ключа без компаний (no_companies) */
   company_ids: string[];
   /** Когда выпущен, ISO 8601 UTC */
   created_at: string;
@@ -165,6 +171,8 @@ export interface ApiKeyDetails {
   monthly_cap_tiyn: number | bigint | null;
   /** Название ключа для людей */
   name: string;
+  /** Ключ без доступа к компаниям и их 1С: company_ids пуст, all_companies = false; компаний не видит никогда. Пустой company_ids сам по себе вида не называет — смотреть на all_companies и no_companies */
+  no_companies: boolean;
   /** Права ключа: `company.read` — читать данные компаний (есть всегда); `chat.use` — работать с ИИ-бухгалтером; `proposals.create` — готовить документы для 1С; `proposals.approve` — одобрять запись в 1С; `automations.read` —… */
   permissions: ApiKeyDetailsPermissionItem[];
   /** Открытая часть ключа для показа — узнать ключ среди других; сам ключ (tg_…_секрет) целиком не хранится */
@@ -217,6 +225,8 @@ export interface ApiKeyPatch {
   monthly_cap_tiyn?: number | bigint | null;
   /** Название ключа для людей (1–100 знаков): где он используется */
   name?: string;
+  /** Ключ без доступа к компаниям и их 1С: ни одной компании он не видит — ни сейчас, ни будущих; company_ids и all_companies не передаются, права — только company.read (он ничего не открывает). true — ключ теряет доступ ко в… */
+  no_companies?: boolean;
   /** Права ключа (1–20): `company.read` — читать данные компаний (добавляется всегда, даже если не передано); `chat.use` — работать с ИИ-бухгалтером; `proposals.create` — готовить документы для 1С; `proposals.approve` — одобр… */
   permissions?: string[];
   /** Предел записи в 1С по ключу: какие виды документов ключ может одобрять (как kinds правила автоодобрения: sale, purchase, bank_receipt, bank_payment, counterparty, contract, inventory_writeoff, cash_order_in, cash_order_o… */
@@ -253,7 +263,7 @@ export interface ApiKeyRolled {
   all_companies: boolean;
   /** С каких IP и подсетей CIDR ключ работает; с другого адреса — 403 ip_not_allowed. null — с любых */
   allowed_ips: string[] | null;
-  /** Компании, к которым ключ даёт доступ (co_…); пусто у ключа на все компании (all_companies) */
+  /** Компании, к которым ключ даёт доступ (co_…); пусто у ключа на все компании (all_companies) и у ключа без компаний (no_companies) */
   company_ids: string[];
   /** Когда выпущен, ISO 8601 UTC */
   created_at: string;
@@ -265,8 +275,10 @@ export interface ApiKeyRolled {
   expires_at: string;
   /** id ключа (key_…) — для адресов …/api-keys/{id} */
   id: string;
-  /** Новый ключ целиком (tg_…) — один раз: показать с кнопкой «Скопировать» */
-  key: string;
+  /** Новый ключ целиком (tg_…) — один раз: показать с кнопкой «Скопировать». В повторе по Idempotency-Key — null */
+  key: string | null;
+  /** Только в повторе по Idempotency-Key: почему key = null и что делать, если новый секрет потерян (сменить ещё раз) */
+  key_note?: string;
   /** Когда ключом пользовались последний раз, ISO 8601 UTC (точность — около минуты); null — ещё ни разу */
   last_used_at: string | null;
   /** С какого IP-адреса был последний запрос; null — ещё ни разу */
@@ -275,6 +287,8 @@ export interface ApiKeyRolled {
   monthly_cap_tiyn: number | bigint | null;
   /** Название ключа для людей */
   name: string;
+  /** Ключ без доступа к компаниям и их 1С: company_ids пуст, all_companies = false; компаний не видит никогда. Пустой company_ids сам по себе вида не называет — смотреть на all_companies и no_companies */
+  no_companies: boolean;
   /** Права ключа: `company.read` — читать данные компаний (есть всегда); `chat.use` — работать с ИИ-бухгалтером; `proposals.create` — готовить документы для 1С; `proposals.approve` — одобрять запись в 1С; `automations.read` —… */
   permissions: ApiKeyRolledPermissionItem[];
   /** Открытая часть ключа для показа — узнать ключ среди других; сам ключ (tg_…_секрет) целиком не хранится */
@@ -310,7 +324,7 @@ export interface ApiKeySelf {
   allowed_ips: string[] | null;
   /** Почему ключ сейчас не сработает — тот же код, что вернул бы отказ; null — всё хорошо. Вызов ИИ оценивается средней ценой, настоящая цена может быть выше. Ограничение по адресу (allowed_ips) здесь не проверяется: оно своё… */
   blocked_reason: ApiKeySelfBlockedReason | null;
-  /** Компании, к которым ключ даёт доступ (co_…); пусто у ключа на все компании (all_companies) */
+  /** Компании, к которым ключ даёт доступ (co_…); пусто у ключа на все компании (all_companies) и у ключа без компаний (no_companies) */
   company_ids: string[];
   /** Когда выпущен, ISO 8601 UTC */
   created_at: string;
@@ -331,6 +345,8 @@ export interface ApiKeySelf {
   monthly_cap_tiyn: number | bigint | null;
   /** Название ключа для людей */
   name: string;
+  /** Ключ без доступа к компаниям и их 1С: company_ids пуст, all_companies = false; компаний не видит никогда. Пустой company_ids сам по себе вида не называет — смотреть на all_companies и no_companies */
+  no_companies: boolean;
   /** Права ключа: `company.read` — читать данные компаний (есть всегда); `chat.use` — работать с ИИ-бухгалтером; `proposals.create` — готовить документы для 1С; `proposals.approve` — одобрять запись в 1С; `automations.read` —… */
   permissions: ApiKeySelfPermissionItem[];
   /** Открытая часть ключа для показа — узнать ключ среди других; сам ключ (tg_…_секрет) целиком не хранится */
@@ -401,7 +417,7 @@ export interface ApiKeyUpdated {
   all_companies: boolean;
   /** С каких IP и подсетей CIDR ключ работает; с другого адреса — 403 ip_not_allowed. null — с любых */
   allowed_ips: string[] | null;
-  /** Компании, к которым ключ даёт доступ (co_…); пусто у ключа на все компании (all_companies) */
+  /** Компании, к которым ключ даёт доступ (co_…); пусто у ключа на все компании (all_companies) и у ключа без компаний (no_companies) */
   company_ids: string[];
   /** Когда выпущен, ISO 8601 UTC */
   created_at: string;
@@ -421,6 +437,8 @@ export interface ApiKeyUpdated {
   monthly_cap_tiyn: number | bigint | null;
   /** Название ключа для людей */
   name: string;
+  /** Ключ без доступа к компаниям и их 1С: company_ids пуст, all_companies = false; компаний не видит никогда. Пустой company_ids сам по себе вида не называет — смотреть на all_companies и no_companies */
+  no_companies: boolean;
   /** Права ключа: `company.read` — читать данные компаний (есть всегда); `chat.use` — работать с ИИ-бухгалтером; `proposals.create` — готовить документы для 1С; `proposals.approve` — одобрять запись в 1С; `automations.read` —… */
   permissions: ApiKeyUpdatedPermissionItem[];
   /** Открытая часть ключа для показа — узнать ключ среди других; сам ключ (tg_…_секрет) целиком не хранится */
@@ -488,7 +506,7 @@ export interface ApiKeyUsageByDayItem {
 export interface ApiKeyUsageByModelItem {
   /** Стоимость в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
   cost_tiyn: number | bigint;
-  /** Модель ИИ (техническое имя) */
+  /** Модель ИИ: tungo-1-flash, tungo-1, tungo-1-deep (tungo-search, tungo-legacy) */
   model: string;
   /** Сколько вызовов ИИ */
   requests: number | bigint;
@@ -582,9 +600,12 @@ export interface ApproveRequest {
 
 /** Запись журнала организации: кто, когда и что сделал. */
 export interface AuditEntry {
-  /** Что сделано — машинное имя вида «объект.действие»; подпись по-русски — в action_title. Значения: - `company.created` — Компания заведена - `company.updated` — Карточка компании изменена - `company.archived` — Компания уб… */
+  /** Код действия вида «объект.действие». Текст для человека собирайте сами на его языке: по этому коду и параметрам из data (ниже — что значит каждый код). Значения: - `company.created` — Компания заведена - `company.updated… */
   action: AuditEntryAction;
-  /** Что сделано, по-русски — для показа */
+  /**
+   * Что сделано, готовой фразой по-русски. Оставлено для совместимости: фраза всегда русская, поэтому для показа берите код action и параметры data и подставляйте текст на языке человека
+   * @deprecated
+   */
   action_title: string;
   /** Кто сделал */
   actor: AuditEntryActor;
@@ -592,20 +613,22 @@ export interface AuditEntry {
   at: string | null;
   /** Компания, к которой относится запись (co_…); null — запись об организации в целом */
   company_id: string | null;
-  /** Подробности действия (JSON, ключи snake_case): например { before, after } у изменений. Вид зависит от action — показывать как дополнительные сведения */
+  /** Параметры действия (JSON, ключи snake_case) — для подстановки в текст и для подробностей: например { role } у смены роли, { from, amount_tiyn, kind } у платежа, { before, after } у изменений. Набор зависит от action */
   data?: unknown;
   /** id записи (aud_…) */
   id: string;
   /** IP, с которого пришёл запрос; null — фоновое действие */
   ip: string | null;
+  /** Над чем сделано — с названием, чтобы не показывать безликое «Организация»: в отличие от target, у действий с вебхуком это сам адрес вебхука, у платежа есть сумма и назначение. null — без отдельного объекта. По ключу API … */
+  object: AuditEntryObject | null;
   /** Номер запроса (req_…) — по нему поддержка найдёт запрос; null — фоновое действие */
   request_id: string | null;
   /** Над чем сделано; null — без отдельного объекта */
   target: AuditEntryTarget | null;
 }
 
-/** Что сделано — машинное имя вида «объект.действие»; подпись по-русски — в action_title. Значения: - `company.created` — Компания заведена - `company.updated` — Карточка компании изменена - `company.archived` — Компания уб… */
-export type AuditEntryAction = 'company.created' | 'company.updated' | 'company.archived' | 'company.unarchived' | 'company.member_added' | 'company.member_role_changed' | 'company.member_removed' | 'company.onboarding_waived' | 'company.onboarding_unwaived' | 'company.onec_connected' | 'company.onec_updated' | 'company.onec_copy_uploaded' | 'company.onec_copy_held' | 'company.onec_connector_code_created' | 'company.onec_connector_paired' | 'company.onec_connector_rotated' | 'company.onec_connector_revoked' | 'company.onec_connector_link_approved' | 'connector.link_created' | 'connector.link_denied' | 'company.onec_link_approved' | 'company.onec_link_revoked' | 'company.profile_rebuild' | 'workspace.member_joined' | 'workspace.member_role_changed' | 'workspace.member_removed' | 'workspace.member_access_revoked' | 'workspace.invitation_created' | 'workspace.invitation_cancelled' | 'workspace.policies_updated' | 'workspace.scim_token_created' | 'workspace.scim_token_revoked' | 'workspace.scim_user_provisioned' | 'workspace.scim_user_deprovisioned' | 'workspace.scim_user_deleted' | 'workspace.updated' | 'workspace.sso_provider_updated' | 'workspace.sso_provider_deleted' | 'workspace.sso_domain_verification_requested' | 'workspace.sso_domain_verified' | 'workspace.ownership_transferred' | 'workspace.deleted' | 'workspace.created' | 'workspace.converted_to_team' | 'workspace.deletion_scheduled' | 'workspace.deletion_cancelled' | 'workspace.invitation_resent' | 'team.seats_purchased' | 'team.seats_reduced' | 'admin.workspace.kind_changed' | 'admin.workspace.contract_seats' | 'workspace.sso_provider_created' | 'workspace.group_created' | 'workspace.group_updated' | 'workspace.group_deleted' | 'workspace.group_member_added' | 'workspace.group_member_removed' | 'workspace.group_roles_changed' | 'workspace.custom_role_created' | 'workspace.custom_role_updated' | 'workspace.custom_role_deleted' | 'workspace.role_ceiling_updated' | 'workspace.model_policy_updated' | 'workspace.retention_updated' | 'workspace.training_consent' | 'workspace.audit_exported' | 'workspace.compliance_updated' | 'workspace.compliance_read' | 'api_key.created' | 'api_key.updated' | 'api_key.rolled' | 'api_key.revoked' | 'api_key.transferred' | 'api_key.disabled' | 'api_key.enabled' | 'webhook.endpoint_created' | 'webhook.endpoint_updated' | 'webhook.endpoint_deleted' | 'webhook.secret_rotated' | 'webhook.secret_read' | 'webhook.message_resent' | 'company.autonomy.changed' | 'automation.paused' | 'automation.resumed' | 'automation.run.cancel' | 'billing.profile.updated' | 'billing.payment_method.disabled' | 'billing.refund.succeeded' | 'subscription.created' | 'subscription.changed' | 'subscription.cancel_scheduled' | 'subscription.resumed' | 'extra_usage.configured' | 'extra_usage.adjusted' | 'platform.configured' | 'platform.adjusted' | 'extra_usage.member_cap_set' | 'extra_usage.alert_thresholds_set' | 'company.spend_cap_set' | 'team.analytics_exported' | 'team.spend_exported' | 'ai_budget.member_set' | 'ai_budget.member_reset' | 'spend.cap_threshold_reached' | 'spend.company_cap_reached' | 'plan.created' | 'plan.updated' | 'usage_rate.added' | 'user.terms.accepted' | 'account.deletion_code_sent' | 'account.deletion_scheduled' | 'account.deletion_cancelled' | 'account.deleted' | 'admin.workspace.blocked' | 'admin.workspace.unblocked' | 'admin.workspace.training_consent' | 'admin.user.platform_roles_changed' | 'admin.user.free_eligibility_changed' | 'admin.training.exported' | 'admin.dialog.pd_viewed' | 'canary.triggered' | 'billing.payment.new' | 'billing.payment.pending' | 'billing.payment.requires_action' | 'billing.payment.authorized' | 'billing.payment.succeeded' | 'billing.payment.verified' | 'billing.payment.failed' | 'billing.payment.cancelled' | 'billing.payment.partially_refunded' | 'billing.payment.refunded';
+/** Код действия вида «объект.действие». Текст для человека собирайте сами на его языке: по этому коду и параметрам из data (ниже — что значит каждый код). Значения: - `company.created` — Компания заведена - `company.updated… */
+export type AuditEntryAction = 'company.created' | 'company.updated' | 'company.archived' | 'company.unarchived' | 'company.member_added' | 'company.member_role_changed' | 'company.member_removed' | 'company.onboarding_waived' | 'company.onboarding_unwaived' | 'company.onec_connected' | 'company.onec_updated' | 'company.onec_copy_uploaded' | 'company.onec_copy_held' | 'company.onec_connector_code_created' | 'company.onec_connector_paired' | 'company.onec_connector_rotated' | 'company.onec_connector_rotate_refused' | 'company.onec_connector_revoked' | 'company.onec_connector_link_approved' | 'connector.link_created' | 'connector.link_denied' | 'company.onec_link_approved' | 'company.onec_link_revoked' | 'onec_link.wrong_match' | 'company.profile_rebuild' | 'workspace.member_joined' | 'workspace.member_role_changed' | 'workspace.member_removed' | 'workspace.member_access_revoked' | 'workspace.invitation_created' | 'workspace.invitation_cancelled' | 'workspace.policies_updated' | 'workspace.scim_token_created' | 'workspace.scim_token_revoked' | 'workspace.scim_user_provisioned' | 'workspace.scim_user_deprovisioned' | 'workspace.scim_user_deleted' | 'workspace.updated' | 'workspace.sso_provider_updated' | 'workspace.sso_provider_deleted' | 'workspace.sso_domain_verification_requested' | 'workspace.sso_domain_verified' | 'workspace.ownership_transferred' | 'workspace.deleted' | 'workspace.created' | 'team.checkout_abandoned' | 'enterprise.request_created' | 'workspace.converted_to_team' | 'workspace.deletion_scheduled' | 'workspace.deletion_cancelled' | 'workspace.invitation_resent' | 'team.seats_purchased' | 'team.seats_reduced' | 'admin.workspace.kind_changed' | 'admin.workspace.contract_seats' | 'workspace.sso_provider_created' | 'workspace.group_created' | 'workspace.group_updated' | 'workspace.group_deleted' | 'workspace.group_member_added' | 'workspace.group_member_removed' | 'workspace.group_roles_changed' | 'workspace.custom_role_created' | 'workspace.custom_role_updated' | 'workspace.custom_role_deleted' | 'workspace.role_ceiling_updated' | 'workspace.model_policy_updated' | 'workspace.retention_updated' | 'workspace.training_consent' | 'workspace.audit_exported' | 'workspace.compliance_updated' | 'workspace.compliance_read' | 'api_key.created' | 'api_key.updated' | 'api_key.rolled' | 'api_key.revoked' | 'api_key.transferred' | 'api_key.disabled' | 'api_key.enabled' | 'webhook.endpoint_created' | 'webhook.endpoint_updated' | 'webhook.endpoint_deleted' | 'webhook.secret_rotated' | 'webhook.secret_read' | 'webhook.message_resent' | 'company.autonomy.changed' | 'automation.paused' | 'automation.resumed' | 'automation.run.cancel' | 'billing.profile.updated' | 'billing.payment_method.disabled' | 'billing.refund.succeeded' | 'billing.manual_charge' | 'subscription.created' | 'subscription.changed' | 'subscription.cancel_scheduled' | 'subscription.resumed' | 'extra_usage.configured' | 'extra_usage.adjusted' | 'platform.configured' | 'platform.adjusted' | 'extra_usage.member_cap_set' | 'extra_usage.alert_thresholds_set' | 'company.spend_cap_set' | 'team.analytics_exported' | 'team.spend_exported' | 'ai_budget.member_set' | 'ai_budget.member_reset' | 'spend.cap_threshold_reached' | 'spend.company_cap_reached' | 'plan.created' | 'plan.updated' | 'usage_rate.added' | 'user.terms.accepted' | 'account.deletion_code_sent' | 'account.deletion_scheduled' | 'account.deletion_cancelled' | 'account.deleted' | 'account.email_code_sent' | 'account.email_bound' | 'account.telegram_merged' | 'account.google_linked' | 'account.telegram_merge_refused' | 'admin.ads.conversions_released' | 'admin.ads.conversions_rejected' | 'admin.ads.signups_exported' | 'admin.access.signed_in' | 'admin.access.refused' | 'admin.two_factor.verified' | 'admin.two_factor.enable_requested' | 'admin.two_factor.enabled' | 'admin.two_factor.disabled' | 'admin.session.signed_in' | 'admin.user.banned' | 'admin.user.unbanned' | 'admin.workspace.blocked' | 'admin.workspace.unblocked' | 'admin.workspace.training_consent' | 'admin.user.platform_roles_changed' | 'admin.user.free_eligibility_changed' | 'admin.user.limit_resets_granted' | 'admin.user.limit_resets_revoked' | 'usage.limit_reset_applied' | 'referral.claimed' | 'referral.rewarded' | 'admin.enterprise_request.status_changed' | 'admin.training.exported' | 'admin.setting.changed' | 'admin.logs.purged' | 'admin.dialog.pd_viewed' | 'admin.dialog.label_set' | 'admin.dialog.label_removed' | 'admin.journal.pd_viewed' | 'admin.company.pd_viewed' | 'admin.company.pd_searched' | 'admin.payment.pd_viewed' | 'site.post_published' | 'site.post_unpublished' | 'site.post_deleted' | 'site.legal_published' | 'site.trackers_saved' | 'canary.triggered' | 'billing.payment.new' | 'billing.payment.pending' | 'billing.payment.requires_action' | 'billing.payment.authorized' | 'billing.payment.succeeded' | 'billing.payment.verified' | 'billing.payment.failed' | 'billing.payment.cancelled' | 'billing.payment.partially_refunded' | 'billing.payment.refunded';
 
 /** Кто сделал */
 export interface AuditEntryActor {
@@ -619,6 +642,23 @@ export interface AuditEntryActor {
 
 /** Кто сделал: user — человек, api_key — интеграция по ключу API, system — сама платформа */
 export type AuditEntryActorType = 'user' | 'api_key' | 'system';
+
+/** Над чем сделано — с названием, чтобы не показывать безликое «Организация»: в отличие от target, у действий с вебхуком это сам адрес вебхука, у платежа есть сумма и назначение. null — без отдельного объекта. По ключу API … */
+export interface AuditEntryObject {
+  /** Только у платежа: сумма в тиынах; у остальных — null */
+  amount_tiyn: number | bigint | null;
+  /** id объекта: публичный с меткой (pay_…, key_…, co_…), если у вида она есть; у вебхука — id адреса (ep_…) */
+  id: string | null;
+  /** Название для показа: у вебхука — описание, а без него адрес; у ключа, компании, группы и своей роли — название; у человека — имя. null — названия нет (платёж показывайте суммой и назначением, организацию — своим словом) … */
+  name: string | null;
+  /** Только у платежа: назначение — subscription (подписка), seats (места), extra_usage (доп. использование), platform_topup (пополнение платформы), onboarding (подключение компании), card_verification (проверка карты), one_o… */
+  purpose: AuditEntryObjectPurpose | null;
+  /** Вид объекта: webhook — адрес вебхука, payment — платёж, api_key, company, user, group, custom_role, invitation, workspace и другие виды из target.type */
+  type: string;
+}
+
+/** Только у платежа: назначение — subscription (подписка), seats (места), extra_usage (доп. использование), platform_topup (пополнение платформы), onboarding (подключение компании), card_verification (проверка карты), one_o… */
+export type AuditEntryObjectPurpose = 'subscription' | 'one_off' | 'onboarding' | 'extra_usage' | 'platform_topup' | 'seats' | 'manual' | 'card_verification';
 
 /** Над чем сделано; null — без отдельного объекта */
 export interface AuditEntryTarget {
@@ -1766,6 +1806,38 @@ export interface BatchRowQuestionOptionItem {
   label: string;
 }
 
+/** Данные файла выписки, по которому шло задание: счёт, банк, период, остатки. Полный номер счёта ядро не хранит */
+export interface BatchStatement {
+  /** Счета выписки (обычно один) */
+  accounts: BatchStatementAccount[];
+  /** Остаток сходится по всем счетам файла; false — хотя бы по одному не сходится; null — хотя бы по одному проверить нельзя */
+  balanced: boolean | null;
+  /** Начало периода выписки (ГГГГ-ММ-ДД); null — в файле нет */
+  period_from: string | null;
+  /** Конец периода выписки (ГГГГ-ММ-ДД); null — в файле нет */
+  period_to: string | null;
+  /** «Отправитель» из заголовка файла — банк или программа, сформировавшие выписку; null — не указан */
+  sender: string | null;
+}
+
+/** Счёт выписки: остатки и обороты */
+export interface BatchStatementAccount {
+  /** Номер счёта со скрытой серединой: первые 4 и последние 4 знака */
+  account: string;
+  /** Остаток сходится: входящий остаток + поступило − списано = исходящий остаток (до тиына). null — проверить нельзя: в файле нет остатков или есть операции не по счетам выписки */
+  balanced: boolean | null;
+  /** Банк счёта — из реквизитов операций файла; null — банк в файле не назван (тогда показать sender выписки) */
+  bank: string | null;
+  /** БИК банка счёта; null — в файле его нет */
+  bank_bic: string | null;
+  /** Исходящий остаток на конец периода; null — в файле его нет */
+  closing_balance: Money | null;
+  incoming: Money;
+  /** Входящий остаток на начало периода; null — в файле его нет */
+  opening_balance: Money | null;
+  outgoing: Money;
+}
+
 /** Итог «Остановить» */
 export interface BatchStopResult {
   /** Номер задания */
@@ -1794,6 +1866,8 @@ export interface BatchSummary {
   reason?: string;
   /** true — задание ещё идёт: кнопка «Одобрить» выключена */
   running: boolean;
+  /** Данные файла выписки (счёт, банк, период, остатки); null — задание не по файлу выписки (ЭСФ, DirectBank, одобрение) или заведено до появления поля */
+  statement: BatchStatement | null;
   /** Название задания */
   title: string;
   totals: BatchSummaryTotals;
@@ -1876,7 +1950,25 @@ export interface CardSession {
   payment_object: Record<string, unknown>;
   /** Адрес скрипта платёжной формы ePay: подключить его на странице (тег script) перед открытием формы */
   script_url: string;
+  /** true — тестовый терминал ePay: настоящие деньги не списываются, платят тестовыми картами. Показать на форме пометку «тестовая оплата» */
+  test_mode: boolean;
 }
+
+/** Итог привязки карты после возврата с формы банка. */
+export interface CardSessionState {
+  /** Почему карта не привязалась (только при status = failed, иначе null): card_taken — эта карта уже привязана другим человеком, предложить другую; abandoned — форму банка не открыли или закрыли, банк о заказе не узнал; decl… */
+  failure_code: CardSessionStateFailureCode | null;
+  /** Служебный платёж проверки карты — тот же, что в ответе POST …/card-sessions (pay_…) */
+  payment_id: string;
+  /** Итог привязки: pending — ждём ответа банка (спросить ещё раз позже); verified — карта привязана и уже в списке карт; failed — не привязана, причина в failure_code */
+  status: CardSessionStateStatus;
+}
+
+/** Почему карта не привязалась (только при status = failed, иначе null): card_taken — эта карта уже привязана другим человеком, предложить другую; abandoned — форму банка не открыли или закрыли, банк о заказе не узнал; decl… */
+export type CardSessionStateFailureCode = 'card_taken' | 'abandoned' | 'declined';
+
+/** Итог привязки: pending — ждём ответа банка (спросить ещё раз позже); verified — карта привязана и уже в списке карт; failed — не привязана, причина в failure_code */
+export type CardSessionStateStatus = 'pending' | 'verified' | 'failed';
 
 /** Ответ на уточняющий вопрос ИИ */
 export interface ChatAnswerRequest {
@@ -1896,8 +1988,12 @@ export interface ChatAssistantMessage {
   blocks: ChatHistoryBlock[];
   /** Источники ответа */
   citations: ChatCitation[];
+  /** Вопросы-продолжения под ответом, до 3, на языке разговора: нажатие — обычный новый вопрос с этим текстом. Пусто — предложить нечего */
+  followups: string[];
   /** Устойчивый id сообщения: <dialog_id>:<номер хода>:a */
   id: string;
+  /** Предложенное следующее действие; null — нет */
+  next_action: ChatNextAction | null;
   /** Номера предложений этого хода — то же, что proposal-блоки, списком */
   proposal_ids: string[];
   /** Ответ ИИ */
@@ -1933,10 +2029,12 @@ export interface ChatAttachmentMeta {
 
 /** Ответ на один вопрос из события choice */
 export interface ChatChoiceAnswer {
-  /** Свой ответ текстом (вариант «свой ответ»). Нужен selected или other — хотя бы одно */
+  /** Свой ответ текстом (вариант «свой ответ»). Нужен selected или other — хотя бы одно (или skipped) */
   other?: string;
   /** Выбранные варианты — их label из options, в любом порядке; без повторов. В вопросе без multi_select — не больше одного */
   selected?: string[];
+  /** true — «Пропустить»: вопрос оставлен без ответа, selected и other не передавать. ИИ узнаёт, что вопрос пропущен, и продолжает без этого ответа. У вопроса-подтверждения действия пропуск равен отказу: действие не выполняет… */
+  skipped?: boolean;
 }
 
 /** Вариант ответа */
@@ -1949,8 +2047,10 @@ export interface ChatChoiceOption {
   ref?: string;
 }
 
-/** Уточняющий вопрос ИИ с вариантами. Вариант «свой ответ» есть всегда и в options не входит */
+/** Вопрос с вариантами: уточняющий вопрос ИИ или подтверждение действия (confirm). Вариант «свой ответ» есть всегда и в options не входит */
 export interface ChatChoiceQuestion {
+  /** true — это не уточнение, а подтверждение действия: вопрос задала программа, действие выполнится только по кнопке согласия (первый вариант). Пропуск, свой текст и закрытие — отказ: кнопку «Пропустить» не показывать. false… */
+  confirm: boolean;
   /** Короткая подпись вопроса, до ~12 символов (для вкладки или чипа) */
   header: string;
   /** true — можно выбрать несколько вариантов (чекбоксы); false — один (радиокнопки) */
@@ -1992,8 +2092,9 @@ export interface ChatDialog {
   pd_restored: boolean;
   /** true — идёт ход: дочитать его потоком GET …/chat/{id}/events?turn=<turn> */
   running: boolean;
-  /** Заголовок — первый вопрос одной строкой */
+  /** Название одной строкой: человека, иначе от ИИ, иначе первый вопрос. Откуда оно — title_source */
   title: string;
+  title_source: ChatTitleSource;
   /** Номер текущего хода (если идёт) или число законченных ходов */
   turn: number;
   /** Последнее изменение, ISO 8601 UTC */
@@ -2026,7 +2127,7 @@ export interface ChatDialogList {
 
 /** Новое название разговора */
 export interface ChatDialogPatch {
-  /** Новое название, до 64 символов; пустая строка — вернуть заголовок по первому вопросу */
+  /** Новое название, до 64 символов; пустая строка — вернуть автоматическое название (от ИИ, а пока его нет — первый вопрос) */
   title: string;
 }
 
@@ -2036,6 +2137,7 @@ export interface ChatDialogRenamed {
   id: string;
   /** Название разговора теперь */
   title: string;
+  title_source: ChatTitleSource;
 }
 
 /** Разговор в списке */
@@ -2046,14 +2148,15 @@ export interface ChatDialogSummary {
   message_count: number;
   /** true — ИИ сейчас отвечает: показать индикатор */
   running: boolean;
-  /** Заголовок — первый вопрос одной строкой (до 64 знаков, длиннее — с «…»); вопрос из одних файлов — их имена */
+  /** Название одной строкой (до 64 знаков, длиннее — с «…»): человека, иначе от ИИ, иначе первый вопрос (вопрос из одних файлов — их имена). Откуда оно — title_source */
   title: string;
+  title_source: ChatTitleSource;
   /** Последнее изменение (у идущего хода — его начало), ISO 8601 UTC */
   updated_at: string;
 }
 
 /** Одно событие потока: `id: <номер>`, `event: <type>`, `data: <JSON этого вида>`. Ещё бывает `event: ping` с пустым data — пульс, его пропускайте. Переподключение — GET …/chat/{id}/events с Last-Event-ID. */
-export type ChatEvent = ChatEventText | ChatEventProgress | ChatEventThinking | ChatEventStatus | ChatEventTool | ChatEventProposal | ChatEventCitation | ChatEventQuestion | ChatEventChoice | ChatEventError | ChatEventBatch | ChatEventBatchReport | ChatEventDone;
+export type ChatEvent = ChatEventText | ChatEventProgress | ChatEventThinking | ChatEventStatus | ChatEventTool | ChatEventProposal | ChatEventCitation | ChatEventQuestion | ChatEventChoice | ChatEventError | ChatEventBatch | ChatEventBatchReport | ChatEventNext | ChatEventDone | ChatEventTitle;
 
 /** Прогресс пачки (задания …/batch): обновить полосу прогресса */
 export interface ChatEventBatch {
@@ -2112,7 +2215,7 @@ export interface ChatEventCitation {
   url?: string;
 }
 
-/** Конец хода — приходит после записи хода в историю. Дальше событий не будет */
+/** Конец хода — приходит после записи хода в историю. Дальше событий хода не будет; в первом ходе разговора за ним может прийти одно title */
 export interface ChatEventDone {
   /** Итоговый ответ хода целиком (Markdown): заменить им собранный из text */
   answer?: string;
@@ -2134,6 +2237,16 @@ export interface ChatEventError {
   request_id: string | null;
   /** Вид события: error */
   type: 'error';
+}
+
+/** Что дальше — под законченным ответом, перед done, не чаще раза за ход: вопросы-продолжения и предложенное действие. Нажатие — обычный новый вопрос; сам ИИ ничего не запускает */
+export interface ChatEventNext {
+  /** Предложенное следующее действие; null — нет */
+  action: ChatNextAction | null;
+  /** Вопросы-продолжения под ответом, до 3, на языке разговора: нажатие — обычный новый вопрос с этим текстом. Пусто — предложить нечего */
+  followups: string[];
+  /** Вид события: next */
+  type: 'next';
 }
 
 /** Текст витка step промежуточный (дальше вызов инструментов): убрать его из ответа, показать как прогресс */
@@ -2196,6 +2309,14 @@ export interface ChatEventThinking {
   type: 'thinking';
 }
 
+/** ИИ придумал название разговора — заменить им название в списке разговоров и в шапке (title_source станет ai). Раз за разговор, только кабинету (не ключу API), в потоке первого ответа ПОСЛЕ done: ход уже закончен и новый … */
+export interface ChatEventTitle {
+  /** Название разговора, до 64 знаков */
+  title: string;
+  /** Вид события: title */
+  type: 'title';
+}
+
 /** Шаг ИИ: вызов инструмента (поиск в 1С, расчёт) начат, закончен или с ошибкой */
 export interface ChatEventTool {
   /** Подробности шага или текст ошибки */
@@ -2213,12 +2334,20 @@ export interface ChatEventTool {
 /** started — идёт (крутилка); done — готово; error — не получилось */
 export type ChatEventToolStatus = 'started' | 'done' | 'error';
 
-/** Блок ответа в истории — те же виды, что клиент собирает из живого потока: text | tool | proposal | question | error */
-export type ChatHistoryBlock = ChatHistoryText | ChatHistoryTool | ChatHistoryProposal | ChatHistoryQuestion | ChatHistoryError;
+/** Пачка, собранная ходом (разбор выписки, входящие ЭСФ), — то же, что событие batch_report в потоке: карточку результата взять свежей — GET …/batch/{job_id}/summary */
+export interface ChatHistoryBatch {
+  /** id задания пачки (bat_…) */
+  job_id: string;
+  /** Пачка документов */
+  kind: 'batch';
+}
+
+/** Блок ответа в истории — те же виды, что клиент собирает из живого потока: text | tool | proposal | batch | question | error */
+export type ChatHistoryBlock = ChatHistoryText | ChatHistoryTool | ChatHistoryProposal | ChatHistoryBatch | ChatHistoryQuestion | ChatHistoryError;
 
 /** Ошибка хода */
 export interface ChatHistoryError {
-  /** Причина: - `budget` — кончился лимит (дня или разговора) - `rate_limited` — сервис модели перегружен — повторите - `api` — сбой сервиса модели - `refusal` — модель отказалась отвечать - `context_overflow` — разговор слиш… */
+  /** Причина: - `budget` — кончился лимит (дня или разговора) - `parallel_turns_limit` — у человека уже идёт предельное число ходов ИИ (тариф без доп. использования) — дождаться ответа на предыдущие вопросы - `rate_limited` —… */
   code?: ChatHistoryErrorCode;
   /** Ошибка хода */
   kind: 'error';
@@ -2226,8 +2355,21 @@ export interface ChatHistoryError {
   message: string;
 }
 
-/** Причина: - `budget` — кончился лимит (дня или разговора) - `rate_limited` — сервис модели перегружен — повторите - `api` — сбой сервиса модели - `refusal` — модель отказалась отвечать - `context_overflow` — разговор слиш… */
-export type ChatHistoryErrorCode = 'budget' | 'rate_limited' | 'api' | 'refusal' | 'context_overflow' | 'aborted' | 'max_iterations' | 'max_tokens' | 'empty_answer' | 'unexpected' | 'history' | 'internal' | 'stream_failed' | 'batch_failed' | 'batch_abandoned';
+/** Причина: - `budget` — кончился лимит (дня или разговора) - `parallel_turns_limit` — у человека уже идёт предельное число ходов ИИ (тариф без доп. использования) — дождаться ответа на предыдущие вопросы - `rate_limited` —… */
+export type ChatHistoryErrorCode = 'budget' | 'parallel_turns_limit' | 'rate_limited' | 'api' | 'refusal' | 'context_overflow' | 'aborted' | 'max_iterations' | 'max_tokens' | 'empty_answer' | 'unexpected' | 'history' | 'internal' | 'stream_failed' | 'batch_failed' | 'batch_abandoned';
+
+/** Упоминание через «@» в вопросе из истории: вид, id и название для чипа */
+export interface ChatHistoryMention {
+  /** id упомянутого — как его отдал GET …/chat/mentions */
+  id: string;
+  /** Название упомянутого на момент отправки вопроса — то же, что title в GET …/chat/mentions (документ и номер, имя контрагента, название задания). Сохраняется с вопросом: при чтении истории 1С не спрашивают, позднее переиме… */
+  title: string | null;
+  /** Что упомянуто: `proposal` — предложение (документ для 1С), id — его номер P-000123; `counterparty` — контрагент из 1С компании, id — его ссылка из поиска; `batch` — задание пачки (разбор выписки, входящие ЭСФ), id — bat_… */
+  type: ChatHistoryMentionType;
+}
+
+/** Что упомянуто: `proposal` — предложение (документ для 1С), id — его номер P-000123; `counterparty` — контрагент из 1С компании, id — его ссылка из поиска; `batch` — задание пачки (разбор выписки, входящие ЭСФ), id — bat_… */
+export type ChatHistoryMentionType = 'proposal' | 'counterparty' | 'batch';
 
 /** Подготовленный документ: карточку взять свежей — GET …/proposals/{proposal_id} */
 export interface ChatHistoryProposal {
@@ -2237,8 +2379,9 @@ export interface ChatHistoryProposal {
   proposal_id: string;
 }
 
-/** Вопрос ИИ к человеку */
+/** Вопрос ИИ к человеку. Уточнение, которое ещё ждёт ответа, сюда не попадает — оно приходит только полем awaiting разговора, чтобы экран не показал его дважды */
 export interface ChatHistoryQuestion {
+  answer?: ChatHistoryQuestionAnswer;
   /** Вопрос ИИ */
   kind: 'question';
   /** Номер предложения, к которому вопрос */
@@ -2246,6 +2389,21 @@ export interface ChatHistoryQuestion {
   /** Вопрос */
   text: string;
 }
+
+/** Что человек ответил на уточняющий вопрос. Нет поля — ответа не было (вопрос закрыт) или это вопрос по документу */
+export interface ChatHistoryQuestionAnswer {
+  /** Свой ответ; у ответа сообщением — его текст (один на все вопросы этого уточнения) */
+  other?: string;
+  /** Выбранные варианты (их подписи); у ответа сообщением — пусто */
+  selected: string[];
+  /** true — человек пропустил этот вопрос в форме, не отвечая (selected пуст, other нет) */
+  skipped?: boolean;
+  /** choice — ответил в форме выбора; message — написал сообщением вместо формы */
+  via: ChatHistoryQuestionAnswerVia;
+}
+
+/** choice — ответил в форме выбора; message — написал сообщением вместо формы */
+export type ChatHistoryQuestionAnswerVia = 'choice' | 'message';
 
 /** Кусок ответа текстом */
 export interface ChatHistoryText {
@@ -2272,6 +2430,54 @@ export interface ChatHistoryTool {
 /** done — шаг выполнен; error — не получился */
 export type ChatHistoryToolStatus = 'done' | 'error';
 
+/** Упоминание через «@» в вопросе: вид и id */
+export interface ChatMention {
+  /** id упомянутого — как его отдал GET …/chat/mentions */
+  id: string;
+  /** Что упомянуто: `proposal` — предложение (документ для 1С), id — его номер P-000123; `counterparty` — контрагент из 1С компании, id — его ссылка из поиска; `batch` — задание пачки (разбор выписки, входящие ЭСФ), id — bat_… */
+  type: ChatMentionType;
+}
+
+/** То, что можно упомянуть через «@» */
+export interface ChatMentionItem {
+  /** Вторая строка: сумма документа, БИН контрагента, дата задания; null — нечего добавить */
+  hint: string | null;
+  /** id для поля mentions вопроса */
+  id: string;
+  /** Как показать в списке и в поле ввода: название документа с номером, имя контрагента, название задания (данные компании) */
+  title: string;
+  /** Что упомянуто: `proposal` — предложение (документ для 1С), id — его номер P-000123; `counterparty` — контрагент из 1С компании, id — его ссылка из поиска; `batch` — задание пачки (разбор выписки, входящие ЭСФ), id — bat_… */
+  type: ChatMentionItemType;
+}
+
+/** Что упомянуто: `proposal` — предложение (документ для 1С), id — его номер P-000123; `counterparty` — контрагент из 1С компании, id — его ссылка из поиска; `batch` — задание пачки (разбор выписки, входящие ЭСФ), id — bat_… */
+export type ChatMentionItemType = 'proposal' | 'counterparty' | 'batch';
+
+/** Что можно упомянуть через «@» */
+export interface ChatMentionSearch {
+  /** Найденное, по видам в порядке запроса; внутри вида — свежие сверху */
+  data: ChatMentionItem[];
+  /** Виды, по которым поиск сейчас невозможен, и почему: кабинет прячет раздел или показывает причину */
+  unavailable: ChatMentionUnavailable[];
+}
+
+/** Что упомянуто: `proposal` — предложение (документ для 1С), id — его номер P-000123; `counterparty` — контрагент из 1С компании, id — его ссылка из поиска; `batch` — задание пачки (разбор выписки, входящие ЭСФ), id — bat_… */
+export type ChatMentionType = 'proposal' | 'counterparty' | 'batch';
+
+/** Вид упоминаний, который сейчас не найти */
+export interface ChatMentionUnavailable {
+  /** `no_access` — нет права видеть документы компании; `onec_not_linked` — 1С не подключена; `onec_unavailable` — 1С сейчас не ответила */
+  reason: ChatMentionUnavailableReason;
+  /** Что упомянуто: `proposal` — предложение (документ для 1С), id — его номер P-000123; `counterparty` — контрагент из 1С компании, id — его ссылка из поиска; `batch` — задание пачки (разбор выписки, входящие ЭСФ), id — bat_… */
+  type: ChatMentionUnavailableType;
+}
+
+/** `no_access` — нет права видеть документы компании; `onec_not_linked` — 1С не подключена; `onec_unavailable` — 1С сейчас не ответила */
+export type ChatMentionUnavailableReason = 'no_access' | 'onec_not_linked' | 'onec_unavailable';
+
+/** Что упомянуто: `proposal` — предложение (документ для 1С), id — его номер P-000123; `counterparty` — контрагент из 1С компании, id — его ссылка из поиска; `batch` — задание пачки (разбор выписки, входящие ЭСФ), id — bat_… */
+export type ChatMentionUnavailableType = 'proposal' | 'counterparty' | 'batch';
+
 /** Сообщение разговора: вопрос человека (role = user) или ответ ИИ (role = assistant) */
 export type ChatMessage = ChatUserMessage | ChatAssistantMessage;
 
@@ -2283,6 +2489,10 @@ export interface ChatMessageRequest {
   capabilities?: string[];
   /** Продолжить разговор с этим id. Без него — новый разговор, его id придёт в заголовке X-Dialog-Id */
   dialog_id?: string | null;
+  /** Усилие ИИ на этот вопрос: low < medium < high < xhigh < max — глубже думает, дольше и дороже (больше расход лимита). Не прислано или null — усилие выбирает Tungo. Только на тарифе с выбором усилия (max_effort тарифа в GE… */
+  effort?: ChatMessageRequestEffort | null;
+  /** Упоминания через «@» в этом вопросе, до 10: ИИ получит их вместе с вопросом. Каждое проверяется на доступ: нет объекта в этой компании или нет права его видеть — 404 (error.code = mention_not_found, error.index — номер в… */
+  mentions?: ChatMention[];
   /** Вопрос человека, до 4000 знаков; можно не писать, если приложены файлы */
   message?: string;
   /** Режим хода: auto (по умолчанию) — ИИ сам решает, ответить или подготовить документ; ask — только ответ и разбор, без документов; document — подготовить документ */
@@ -2297,8 +2507,26 @@ export interface ChatMessageRequest {
   turn?: number | bigint | null;
 }
 
+/** Усилие ИИ на этот вопрос: low < medium < high < xhigh < max — глубже думает, дольше и дороже (больше расход лимита). Не прислано или null — усилие выбирает Tungo. Только на тарифе с выбором усилия (max_effort тарифа в GE… */
+export type ChatMessageRequestEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+
 /** Режим хода: auto (по умолчанию) — ИИ сам решает, ответить или подготовить документ; ask — только ответ и разбор, без документов; document — подготовить документ */
 export type ChatMessageRequestMode = 'auto' | 'ask' | 'document';
+
+/** Предложенное следующее действие под ответом ИИ. Сам ИИ его не запускает: действие начинается только новым вопросом человека */
+export interface ChatNextAction {
+  /** Код действия — по нему кабинет подписывает кнопку: - `prepare_document` — подготовить документ для 1С; params.kind — вид документа - `run_check` — запустить проверку учёта - `build_tax_form` — собрать налоговую форму; pa… */
+  code: ChatNextActionCode;
+  /** Параметры действия, плоские. У prepare_document есть kind — вид документа: sale, purchase, bank_receipt, bank_payment, cash_order_in, cash_order_out, advance_report, inventory_writeoff, counterparty, contract */
+  params: Record<string, ChatNextActionParamsValue>;
+  /** Текст нового вопроса от имени человека: нажатие кнопки — обычный POST …/chat с этим message в том же разговоре */
+  prompt: string;
+}
+
+/** Код действия — по нему кабинет подписывает кнопку: - `prepare_document` — подготовить документ для 1С; params.kind — вид документа - `run_check` — запустить проверку учёта - `build_tax_form` — собрать налоговую форму; pa… */
+export type ChatNextActionCode = 'prepare_document' | 'run_check' | 'build_tax_form' | 'check_counterparty';
+
+export type ChatNextActionParamsValue = string | number | boolean;
 
 /** Открытый уточняющий вопрос: показать варианты; ответ — POST …/chat/{id}/answer */
 export interface ChatPendingQuestion {
@@ -2325,6 +2553,51 @@ export interface ChatStopResult {
   /** true — ход шёл и остановлен; false — ход уже не шёл */
   stopped: boolean;
 }
+
+/** Подсказка пустого чата */
+export interface ChatSuggestion {
+  /** `ask` — подставить `prompt` в поле ввода; `connect_onec` — открыть подключение 1С */
+  action: ChatSuggestionAction;
+  /** Код подсказки — постоянное имя карточки в настройке (для значка и аналитики); текст по нему подбирать не нужно */
+  code: string;
+  /** Пояснение под заголовком */
+  hint: string;
+  /** Текст вопроса для поля ввода при нажатии (у `connect_onec` не нужен — совпадает с заголовком) */
+  prompt: string;
+  /** Карточка сезонная: показана, потому что сегодня её окно показа; такие стоят в разделе первыми */
+  seasonal: boolean;
+  /** Заголовок карточки на языке ответа, даты уже подставлены */
+  title: string;
+}
+
+/** `ask` — подставить `prompt` в поле ввода; `connect_onec` — открыть подключение 1С */
+export type ChatSuggestionAction = 'ask' | 'connect_onec';
+
+/** Раздел подсказок */
+export interface ChatSuggestionGroup {
+  /** Код раздела — постоянное имя (для значка вкладки) */
+  code: string;
+  /** Подсказки раздела по порядку показа: сезонные первыми; только подходящие компании сейчас и доступные человеку по правам; не больше настройки chat.suggestions_per_group */
+  suggestions: ChatSuggestion[];
+  /** Название раздела на языке ответа */
+  title: string;
+}
+
+/** Подсказки пустого чата с текстами — по состоянию компании, правам человека и календарю */
+export interface ChatSuggestions {
+  /** Разделы по порядку показа; пустых разделов нет */
+  data: ChatSuggestionGroup[];
+  /** Язык текстов в ответе */
+  locale: ChatSuggestionsLocale;
+  /** Подключена ли 1С компании: от этого зависит набор подсказок */
+  onec_linked: boolean;
+}
+
+/** Язык текстов в ответе */
+export type ChatSuggestionsLocale = 'ru' | 'kk';
+
+/** Откуда название разговора: first_message — первый вопрос (пока ИИ не придумал название, или не смог); ai — придумал ИИ после первого ответа (событие title в потоке хода); user — задал человек (PATCH …/chat/{id}), ИИ его … */
+export type ChatTitleSource = 'first_message' | 'ai' | 'user';
 
 /** Размер и самая большая цена первого вызова модели */
 export interface ChatTokenCount {
@@ -2357,11 +2630,11 @@ export type ChatTokenCountRequestMode = 'auto' | 'ask' | 'document';
 
 /** Ошибка хода */
 export interface ChatTurnError {
-  /** Только у code = budget: лимит можно попросить поднять у админа */
+  /** Только у code = budget с limit_kind day или dialog: лимит можно попросить поднять у владельца или админа организации. Нет — просить некого (человек сам владелец или админ) или причина не в этом лимите */
   can_request_more?: true;
-  /** Причина: - `budget` — кончился лимит (дня или разговора) - `rate_limited` — сервис модели перегружен — повторите - `api` — сбой сервиса модели - `refusal` — модель отказалась отвечать - `context_overflow` — разговор слиш… */
+  /** Причина: - `budget` — кончился лимит (дня или разговора) - `parallel_turns_limit` — у человека уже идёт предельное число ходов ИИ (тариф без доп. использования) — дождаться ответа на предыдущие вопросы - `rate_limited` —… */
   code: ChatTurnErrorCode;
-  /** Только у code = budget: day — дневной лимит, dialog — лимит разговора */
+  /** Только у code = budget — почему ход остановлен: - `day` — дневной лимит человека исчерпан — продолжить завтра (по Алматы) или поднять лимит - `dialog` — лимит разговора исчерпан — начать новый разговор - `turn` — потолок… */
   limit_kind?: ChatTurnErrorLimitKind;
   /** Текст для человека — показать в ленте ответа */
   message: string;
@@ -2371,11 +2644,11 @@ export interface ChatTurnError {
   [key: string]: unknown;
 }
 
-/** Причина: - `budget` — кончился лимит (дня или разговора) - `rate_limited` — сервис модели перегружен — повторите - `api` — сбой сервиса модели - `refusal` — модель отказалась отвечать - `context_overflow` — разговор слиш… */
-export type ChatTurnErrorCode = 'budget' | 'rate_limited' | 'api' | 'refusal' | 'context_overflow' | 'aborted' | 'max_iterations' | 'max_tokens' | 'empty_answer' | 'unexpected' | 'history' | 'internal' | 'stream_failed' | 'batch_failed' | 'batch_abandoned';
+/** Причина: - `budget` — кончился лимит (дня или разговора) - `parallel_turns_limit` — у человека уже идёт предельное число ходов ИИ (тариф без доп. использования) — дождаться ответа на предыдущие вопросы - `rate_limited` —… */
+export type ChatTurnErrorCode = 'budget' | 'parallel_turns_limit' | 'rate_limited' | 'api' | 'refusal' | 'context_overflow' | 'aborted' | 'max_iterations' | 'max_tokens' | 'empty_answer' | 'unexpected' | 'history' | 'internal' | 'stream_failed' | 'batch_failed' | 'batch_abandoned';
 
-/** Только у code = budget: day — дневной лимит, dialog — лимит разговора */
-export type ChatTurnErrorLimitKind = 'day' | 'dialog';
+/** Только у code = budget — почему ход остановлен: - `day` — дневной лимит человека исчерпан — продолжить завтра (по Алматы) или поднять лимит - `dialog` — лимит разговора исчерпан — начать новый разговор - `turn` — потолок… */
+export type ChatTurnErrorLimitKind = 'day' | 'dialog' | 'turn' | 'plan' | 'disabled' | 'meter';
 
 /** Предложение, подготовленное в ходе */
 export interface ChatTurnProposal {
@@ -2394,6 +2667,10 @@ export interface ChatTurnResult {
   dialog_id: string;
   /** Ошибки хода (как error в событии error); пусто — без ошибок */
   errors: ChatTurnError[];
+  /** Вопросы-продолжения под ответом, до 3, на языке разговора: нажатие — обычный новый вопрос с этим текстом. Пусто — предложить нечего */
+  followups: string[];
+  /** Предложенное следующее действие; null — нет */
+  next_action: ChatNextAction | null;
   /** Открытый уточняющий вопрос: ответ — POST …/chat/{dialog_id}/answer; null — вопроса нет */
   pending_question: ChatPendingQuestion | null;
   /** Документы, которые ИИ подготовил в этом ходе */
@@ -2441,6 +2718,8 @@ export interface ChatUserMessage {
   attachments?: ChatAttachmentMeta[];
   /** Устойчивый id сообщения: <dialog_id>:<номер хода>:u */
   id: string;
+  /** Упоминания через «@» в этом вопросе, если были: вид, id и название на момент отправки */
+  mentions?: ChatHistoryMention[];
   /** Вопрос идущего хода: ответа ещё нет, его дочитывают потоком (GET …/chat/{id}/events?turn=). Только у последнего сообщения */
   pending?: true;
   /** Сообщение человека */
@@ -2457,7 +2736,7 @@ export interface Company {
   created_at: string;
   /** Компания — её id во всех адресах /v1/companies/{co}/… (co_…) */
   id: string;
-  legal_form: CompanyLegalForm;
+  legal_form: CompanyLegalForm | null;
   /** Название компании, как его ввели при заведении */
   name: string;
   /** Ваши права в этой компании — по ним кабинет прячет или гасит кнопки (нет proposals.approve — нет «Одобрить»). По ключу API — права, суженные до прав ключа. Порядок — как в каталоге прав */
@@ -2629,7 +2908,7 @@ export interface CompanyCounts {
   proposals_to_decide: number | bigint;
 }
 
-/** Форма: ip — ИП, too — ТОО, ao — АО, other — другое */
+/** Форма: ip — ИП, too — ТОО, ao — АО, other — другое; null — ещё не указана (задаётся в карточке компании: PATCH /v1/companies/{co}) */
 export type CompanyLegalForm = 'ip' | 'too' | 'ao' | 'other';
 
 /** Компания в общем списке — с бейджами (counts) */
@@ -2641,7 +2920,7 @@ export interface CompanyListItem {
   created_at: string;
   /** Компания — её id во всех адресах /v1/companies/{co}/… (co_…) */
   id: string;
-  legal_form: CompanyLegalForm;
+  legal_form: CompanyLegalForm | null;
   /** Название компании, как его ввели при заведении */
   name: string;
   /** Ваши права в этой компании — по ним кабинет прячет или гасит кнопки (нет proposals.approve — нет «Одобрить»). По ключу API — права, суженные до прав ключа. Порядок — как в каталоге прав */
@@ -2791,18 +3070,28 @@ export interface Error {
 export interface ErrorDetail {
   /** При code = login_method_not_allowed — какими способами входа организация пускает к своим данным: email_otp — код из почты, google, apple, telegram, sso — SSO организации. Предложить выйти и войти одним из них. */
   allowed_methods?: ErrorDetailAllowedMethodItem[];
-  /** Уточнение вида: по нему выбирается действие интерфейса (кнопка «Пополнить», «Войти иначе»…). Нет поля — хватает type и message. Известные коды: - `sso_domain_taken` (409) — домен SSO уже подтверждён другой организацией -… */
+  /** При code = subscription_unpaid_debt — сколько оплатить, в тиынах: сумма всех неоплаченных счетов подписки. */
+  amount_tiyn?: number | bigint;
+  /** Уточнение вида: по нему выбирается действие интерфейса (кнопка «Пополнить», «Войти иначе»…). Нет поля — хватает type и message. Известные коды: - `cannot_ban_self` (409) — админка: закрыть вход самому себе нельзя - `user… */
   code?: string;
   /** При code = validation_failed — ошибки по полям, в порядке проверки; у одного поля может быть несколько. */
   fields?: FieldError[];
+  /** При code = free_limit_unavailable. Главная причина отказа в бесплатном лимите: `admin_decision` — решение администратора; `temporary_email` — учётная запись на временной почте; `hidden_email` — скрытая почта Apple; `emai… */
+  free_blocked_reason?: ErrorDetailFreeBlockedReason;
   /** Готовый текст для человека по-русски: что случилось, что делать и к кому обратиться. Показывать как есть; не разбирать — формулировки меняются. */
   message: string;
+  /** Тот же срок моментом времени — ISO 8601, UTC: когда запрос можно повторить. */
+  next_request_at?: string;
+  /** При code = subscription_unpaid_debt — платёж для кнопки «Оплатить» (…/billing/payments/{payment_id}/pay-form); null — вести к списку счетов. */
+  payment_id?: string | null;
   /** При code = missing_permission — какого права не хватает: права в компании (company.read, company.manage, company.members.manage, onec.connect, proposals.create, proposals.approve, chat.use, audit.read, automations.manage… */
   permission?: string;
   /** При code = role_above_yours — права этой роли, которых нет у того, кто выдаёт. Показать списком: «у роли есть права, которых нет у вас: …». */
   permissions?: string[];
   /** Когда ограничение снимется само — ISO 8601, UTC. Есть у plan_limit_reached (конец окна тарифа) и у месячных потолков (workspace_cap_reached, company_cap_reached, member_cap_reached, key_cap_reached, platform_cap_reached … */
   resets_at?: string;
+  /** При отказе по частоте (429) на адресах экрана входа — через сколько секунд можно повторить (то же число, что в заголовке Retry-After). Показать таймер. */
+  retry_after_seconds?: number | bigint;
   /** При code = role_above_yours — ключ роли в компании, которую нельзя выдать или снять (например chief_accountant). */
   role?: string;
   /** Вид ошибки — по нему ветвится клиент (не по тексту message). Статус HTTP у вида один, кроме invalid_request_error: - `invalid_request_error` (400) — запрос неверен: поле не прошло проверку, неверный формат, действие сейч… */
@@ -2812,6 +3101,9 @@ export interface ErrorDetail {
 }
 
 export type ErrorDetailAllowedMethodItem = 'email_otp' | 'google' | 'apple' | 'telegram' | 'sso';
+
+/** При code = free_limit_unavailable. Главная причина отказа в бесплатном лимите: `admin_decision` — решение администратора; `temporary_email` — учётная запись на временной почте; `hidden_email` — скрытая почта Apple; `emai… */
+export type ErrorDetailFreeBlockedReason = 'admin_decision' | 'temporary_email' | 'hidden_email' | 'email_used' | 'device_used' | 'network_limit' | 'company_used' | 'other';
 
 /** Вид ошибки — по нему ветвится клиент (не по тексту message). Статус HTTP у вида один, кроме invalid_request_error: - `invalid_request_error` (400) — запрос неверен: поле не прошло проверку, неверный формат, действие сейч… */
 export type ErrorDetailType = 'invalid_request_error' | 'authentication_error' | 'payment_required_error' | 'permission_error' | 'not_found_error' | 'conflict_error' | 'gone_error' | 'limit_error' | 'api_error' | 'unavailable_error';
@@ -3183,6 +3475,10 @@ export interface GetWorkspacePlatformAuditResponse {
   data: AuditEntry[];
   /** Курсор следующей страницы. Чтобы получить её — тот же запрос (с теми же фильтрами) и `?cursor=<это значение>`. null — страниц больше нет (кнопку «Ещё» спрятать). Курсор непрозрачный: не разбирать и не собирать самому, хр… */
   next_cursor: string | null;
+  /** Сколько всего записей под этими фильтрами (курсор не учитывается). Считается не дальше 10 000: если записей больше — здесь 10 000 и total_more = true */
+  total: number | bigint;
+  /** true — записей больше, чем total: писать «больше 10 000», а не точное число */
+  total_more: boolean;
 }
 
 export interface GetWorkspacePlatformLedgerResponse {
@@ -3295,6 +3591,12 @@ export interface ListCompanyAutomationsScenariosResponse {
   data: AutomationScenario[];
 }
 
+/** Язык текстов — язык интерфейса кабинета. Не передан — язык ответов ИИ из профиля (`kk` — по-казахски, иначе по-русски) */
+export type ListCompanyChatSuggestionsLang = 'ru' | 'kk';
+
+/** true — только отправленные на одобрение и ещё не решённые; false — только остальные */
+export type ListCompanyProposalsApprovalRequested = 'true' | 'false';
+
 export interface ListUsageRatesResponse {
   /** Элементы списка — весь список одним ответом, без страниц */
   data: UsageRate[];
@@ -3305,6 +3607,10 @@ export interface ListWorkspacePlatformRequestsResponse {
   data: PlatformRequest[];
   /** Курсор следующей страницы. Чтобы получить её — тот же запрос (с теми же фильтрами) и `?cursor=<это значение>`. null — страниц больше нет (кнопку «Ещё» спрятать). Курсор непрозрачный: не разбирать и не собирать самому, хр… */
   next_cursor: string | null;
+  /** Сколько всего записей под этими фильтрами (курсор не учитывается). Считается не дальше 10 000: если записей больше — здесь 10 000 и total_more = true */
+  total: number | bigint;
+  /** true — записей больше, чем total: писать «больше 10 000», а не точное число */
+  total_more: boolean;
 }
 
 export interface ListWorkspaceWebhooksEndpointAttemptsResponse {
@@ -3435,6 +3741,8 @@ export interface PayForm {
   payment_object: Record<string, unknown>;
   /** Адрес скрипта платёжной формы ePay: подключить его на странице (тег script) перед открытием формы */
   script_url: string;
+  /** true — тестовый терминал ePay: настоящие деньги не списываются, платят тестовыми картами. Показать на форме пометку «тестовая оплата» */
+  test_mode: boolean;
 }
 
 /** Привязанная банковская карта организации. */
@@ -3485,6 +3793,8 @@ export interface PlatformAccountPurchaseLimits {
   max_tiyn: number | bigint;
   /** Наименьшее пополнение в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
   min_tiyn: number | bigint;
+  /** Сколько уже пополнено сегодня (сутки по Алматы; платежи без итога тоже в счёте) — тот же счёт, что у предела daily_max_tiyn в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
+  today_tiyn: number | bigint;
 }
 
 /** Автопополнение баланса платформы. */
@@ -3509,6 +3819,8 @@ export interface PlatformLedgerEntry {
   at: string;
   /** Баланс после движения в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
   balance_after_tiyn: number | bigint;
+  /** Документы пополнения (kind = purchase) из его платежа. null — у остальных видов и у ключа не на все компании. Файл PDF ядро не формирует: чек выпускает касса, ссылка появляется в receipt_url */
+  documents: PlatformLedgerEntryDocuments | null;
   /** id движения (led_…); он же — курсор */
   id: string;
   /** Вид: `purchase` — пополнение с карты; `usage` — списание за вызов модели; `refund` — возврат на карту (баланс уменьшается); `adjustment` — корректировка поддержкой или возврат удержанной суммы */
@@ -3522,6 +3834,21 @@ export interface PlatformLedgerEntry {
   /** id вызова модели у usage (тот же, что в расходе хода); null — у остальных видов */
   request_id: string | null;
 }
+
+/** Документы пополнения (kind = purchase) из его платежа. null — у остальных видов и у ключа не на все компании. Файл PDF ядро не формирует: чек выпускает касса, ссылка появляется в receipt_url */
+export interface PlatformLedgerEntryDocuments {
+  /** Номер акта выполненных работ (ACT-…), когда платёж прошёл; null — нет */
+  act_number: string | null;
+  /** Номер счёта на оплату по этому пополнению (TG-…); null — нет */
+  invoice_number: string | null;
+  /** Чек ККМ: not_required — не нужен; pending — выпускается; issued — выпущен (ссылка в receipt_url); failed — не выпустился, мы разбираемся; null — платёж ещё не прошёл */
+  receipt_status: PlatformLedgerEntryDocumentsReceiptStatus | null;
+  /** Ссылка на чек ККМ этого пополнения — «Чек» в истории; null — чек ещё не выпущен или не нужен (см. receipt_status) */
+  receipt_url: string | null;
+}
+
+/** Чек ККМ: not_required — не нужен; pending — выпускается; issued — выпущен (ссылка в receipt_url); failed — не выпустился, мы разбираемся; null — платёж ещё не прошёл */
+export type PlatformLedgerEntryDocumentsReceiptStatus = 'not_required' | 'pending' | 'issued' | 'failed';
 
 /** Вид: `purchase` — пополнение с карты; `usage` — списание за вызов модели; `refund` — возврат на карту (баланс уменьшается); `adjustment` — корректировка поддержкой или возврат удержанной суммы */
 export type PlatformLedgerEntryKind = 'purchase' | 'usage' | 'refund' | 'adjustment';
@@ -3627,6 +3954,8 @@ export interface PlatformRequest {
   client_request_id: string | null;
   /** Компания из адреса (co_…); null — адрес не про компанию */
   company_id: string | null;
+  /** Цена запроса в тиынах — сколько списано с баланса платформы за вызовы модели этого запроса (ход ИИ; у хода потоком — когда он закончится). null — запрос модель не вызывал; у запросов до появления этого поля тоже null */
+  cost_tiyn: number | bigint | null;
   /** Сколько шёл ответ, мс. У хода ИИ — до начала потока событий */
   duration_ms: number | bigint;
   /** id строки журнала (rlg_…) */
@@ -3828,12 +4157,52 @@ export interface ProposalApproval {
   requires_right: 'proposals.approve';
 }
 
+/** «Отправить на одобрение»: человек без права записывать в 1С просит решения у того, у кого право есть. Статус предложения не меняется */
+export interface ProposalApprovalRequest {
+  /** Тот, кто смотрит, может отправить на одобрение: готовит документы (proposals.create), сам одобрять не вправе, предложение ждёт решения без блокеров и ещё не отправлено */
+  can_request: boolean;
+  /** Куда отправить просьбу: POST …/proposals/{id}/request-approval */
+  href: string;
+  /** Действующая просьба одобрить; null — не просили или решение уже принято */
+  requested: ProposalApprovalRequested | null;
+}
+
+/** Просьба одобрить */
+export interface ProposalApprovalRequestBody {
+  /** Пояснение для того, кто одобряет, до 1000 знаков; попадёт в историю предложения и журнал */
+  note?: string | null;
+}
+
+/** Итог просьбы одобрить и свежая карточка */
+export interface ProposalApprovalRequestResult {
+  /** true — письмо тем, кто одобряет, поставлено в очередь; false — повтор, письмо поставить не удалось или оно придержано: всем одобряющим по этой компании недавно уже писали (настройка notify.approval_request_interval_minut… */
+  notified: boolean;
+  /** Всегда true */
+  ok: true;
+  proposal: ProposalCard;
+  /** true — просьба уже действовала, новой записи и письма нет */
+  repeated: boolean;
+}
+
+/** Действующая просьба одобрить */
+export interface ProposalApprovalRequested {
+  /** Когда, ISO 8601 UTC */
+  at: string;
+  /** Кто просил: usr_… — человек, key_… — ключ API */
+  by: string;
+  /** Имя просившего для показа — как actor_name в ленте и журнале: имя человека (by = usr_…) или название ключа API (by = key_…). null — имя не нашлось (аккаунт удалён, ключ другой организации) или ответ собран без имён (карт… */
+  by_name: string | null;
+  /** Пояснение к просьбе, если было */
+  note?: string;
+}
+
 /** Полная карточка предложения: шапка, строки, проводки, блокеры, кнопки и история */
 export interface ProposalCard {
   /** Кнопки карточки в нужном порядке: approve, approve_draft, reject */
   actions: ProposalAction[];
   advance_offset?: ProposalAdvanceOffset;
   approval: ProposalApproval;
+  approval_request: ProposalApprovalRequest;
   /** Сколько блокеров: больше 0 — одобрить нельзя, нужен ответ человека в чате */
   blocker_count: number | bigint;
   /** Блокеры — показать красным: пока они есть, одобрить нельзя. Снимает их ответ человека в чате (ИИ пересоберёт предложение) */
@@ -3841,7 +4210,7 @@ export interface ProposalCard {
   counterparty?: ProposalParty;
   /** Когда ИИ подготовил предложение, ISO 8601 UTC */
   created_at: string;
-  /** Разговор чата, в котором ИИ подготовил предложение: «Открыть разговор» — GET …/chat/{dialog_id} (если он ваш). null — не из чата (пачка, автоматизация, MCP) */
+  /** Разговор чата, в котором ИИ подготовил предложение: «Открыть разговор» — GET …/chat/{dialog_id} (если он ваш). null — не из разговора человека (пачка из ручки, автоматизация, MCP) */
   dialog_id: string | null;
   /** Номер документа в 1С — есть, когда документ уже записан */
   document_number?: string;
@@ -3864,11 +4233,14 @@ export interface ProposalCard {
   line_count: number | bigint;
   /** Строки товаров и услуг; пусто у платёжек, кассовых ордеров и справочников */
   lines: ProposalLine[];
+  origin: ProposalOrigin;
   /** Ожидаемые проводки — что получится в учёте после проведения */
   postings: ProposalPosting[];
   result?: ProposalResult;
   source: ProposalSource;
   status: ProposalStatus;
+  /** Причина отказа — у статусов rejected (отклонено) и failed (записать не удалось): последняя такая запись history. null — статус другой или причину не записали */
+  status_reason: ProposalCardStatusReason | null;
   /** Статус по-русски для показа (бейдж) */
   status_title: string;
   /** Текстовое превью документа (для чата и логов). Интерфейс рисует карточку по полям выше */
@@ -3881,6 +4253,14 @@ export interface ProposalCard {
   warning_count: number | bigint;
   /** Предупреждения — показать жёлтым; одобрению не мешают */
   warnings: string[];
+}
+
+/** Причина отказа — у статусов rejected (отклонено) и failed (записать не удалось): последняя такая запись history. null — статус другой или причину не записали */
+export interface ProposalCardStatusReason {
+  /** Машинная пометка причины, если есть (например, write_unknown — запись ушла, ответа 1С не было); null — пометки нет */
+  code: string | null;
+  /** Причина словами для показа: что сказал человек при отклонении или почему 1С не записала документ */
+  message: string;
 }
 
 /** Договор контрагента, по которому идёт документ */
@@ -3953,6 +4333,8 @@ export interface ProposalHistoryEvent {
   actor: string;
   /** Когда, ISO 8601 UTC */
   at: string;
+  /** Машинная пометка шага, если есть: `approval_requested` — просили одобрить (статус при этом не менялся); `write_unknown`, `rejected_write_unknown`, `revert_unknown` — исход записи в 1С неизвестен */
+  code?: string;
   /** Пояснение: причина отклонения, комментарий к одобрению, текст ошибки записи */
   note?: string;
   status: ProposalStatus;
@@ -4001,12 +4383,13 @@ export type ProposalLineSection = 'goods' | 'services';
 /** Короткая карточка для очереди — без строк и проводок (за ними — GET …/proposals/{id}) */
 export interface ProposalListItem {
   approval: ProposalApproval;
+  approval_request: ProposalApprovalRequest;
   /** Сколько блокеров: больше 0 — одобрить нельзя, нужен ответ человека в чате */
   blocker_count: number | bigint;
   counterparty?: ProposalParty;
   /** Когда ИИ подготовил предложение, ISO 8601 UTC */
   created_at: string;
-  /** Разговор чата, в котором ИИ подготовил предложение: «Открыть разговор» — GET …/chat/{dialog_id} (если он ваш). null — не из чата (пачка, автоматизация, MCP) */
+  /** Разговор чата, в котором ИИ подготовил предложение: «Открыть разговор» — GET …/chat/{dialog_id} (если он ваш). null — не из разговора человека (пачка из ручки, автоматизация, MCP) */
   dialog_id: string | null;
   /** Номер документа в 1С — есть, когда документ уже записан */
   document_number?: string;
@@ -4022,7 +4405,10 @@ export interface ProposalListItem {
   level_title: string;
   /** Сколько строк товаров и услуг в документе; 0 у платёжек и справочников */
   line_count: number | bigint;
+  origin: ProposalOrigin;
   status: ProposalStatus;
+  /** Причина отказа — у статусов rejected (отклонено) и failed (записать не удалось): последняя такая запись history. null — статус другой или причину не записали */
+  status_reason: ProposalListItemStatusReason | null;
   /** Статус по-русски для показа (бейдж) */
   status_title: string;
   /** Заголовок строки очереди: вид документа, дата и контрагент */
@@ -4033,9 +4419,34 @@ export interface ProposalListItem {
   warning_count: number | bigint;
 }
 
+/** Причина отказа — у статусов rejected (отклонено) и failed (записать не удалось): последняя такая запись history. null — статус другой или причину не записали */
+export interface ProposalListItemStatusReason {
+  /** Машинная пометка причины, если есть (например, write_unknown — запись ушла, ответа 1С не было); null — пометки нет */
+  code: string | null;
+  /** Причина словами для показа: что сказал человек при отклонении или почему 1С не записала документ */
+  message: string;
+}
+
+/** Откуда пришло предложение и ссылки на источник — вычисляется из связей предложения */
+export interface ProposalOrigin {
+  /** Задание пачки (bat_…): сводка — GET …/batch/{batch_id}/summary, список документов — GET …/proposals?batch_id=; null — не из пачки */
+  batch_id: string | null;
+  /** Разговор чата (то же, что dialog_id предложения); null — не из разговора человека */
+  dialog_id: string | null;
+  /** Запуск сценария автоматизации (run_…); null — не автоматизация */
+  run_id: string | null;
+  /** Откуда документ: chat — из разговора с ИИ; statement — из выписки банка (загруженной, разобранной в чате или DirectBank); esf — из входящих ЭСФ; automation — собран запуском сценария автоматизации (что бы он ни разбирал) */
+  source: ProposalOriginSource;
+}
+
+/** Откуда документ: chat — из разговора с ИИ; statement — из выписки банка (загруженной, разобранной в чате или DirectBank); esf — из входящих ЭСФ; automation — собран запуском сценария автоматизации (что бы он ни разбирал) */
+export type ProposalOriginSource = 'chat' | 'statement' | 'esf' | 'automation';
+
 /** Страница очереди предложений, свежие сверху */
 export interface ProposalPage {
-  /** Сколько предложений в каждом статусе (ключ — ProposalStatus), без учёта фильтра — для бейджей вкладок; статусов без предложений нет */
+  /** Сколько предложений ждёт решения по просьбе («Отправить на одобрение») — в тех же пределах, что counts */
+  approval_requested_count: number | bigint;
+  /** Сколько предложений в каждом статусе (ключ — ProposalStatus) — для бейджей вкладок; статусов без предложений нет. Считается в пределах source и batch_id (откуда и из какой пачки), остальные фильтры (status, kind, даты, q… */
   counts: Record<string, number>;
   /** Предложения страницы, свежие сверху */
   data: ProposalListItem[];
@@ -4392,16 +4803,20 @@ export interface TaxPeriodRef {
 export interface UsageRate {
   /** Цена 1 млн токенов чтения из кэша модели в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
   cache_read_per_mtok_tiyn: number | bigint;
-  /** Цена 1 млн токенов записи в кэш модели в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
+  /** Цена 1 млн токенов записи в кэш модели на 1 час (дороже: так кэшируются правила и инструменты) в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
+  cache_write_1h_per_mtok_tiyn: number | bigint;
+  /** Цена 1 млн токенов записи в кэш модели на 5 минут в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
   cache_write_per_mtok_tiyn: number | bigint;
   /** С какого момента действует цена, ISO 8601 UTC */
   effective_from: string;
   /** Цена 1 млн входных токенов (вопрос и контекст; токен — кусочек текста) в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
   input_per_mtok_tiyn: number | bigint;
-  /** Модель ИИ (техническое имя) */
+  /** Модель ИИ: tungo-1-flash, tungo-1, tungo-1-deep (tungo-search — поиск по нормам, tungo-legacy — прежняя) */
   model: string;
   /** Цена 1 млн токенов ответа в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
   output_per_mtok_tiyn: number | bigint;
+  /** Название модели для людей */
+  title: string;
 }
 
 /** Попытка доставить событие на адрес. */
