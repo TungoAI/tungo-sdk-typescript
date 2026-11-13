@@ -143,6 +143,12 @@ export interface ChatListMentionsParams {
   types?: string | undefined;
 }
 
+/** Query parameters of `chat.getRatingOptions`. */
+export interface ChatGetRatingOptionsParams {
+  /** Язык названий причин; по умолчанию ru */
+  lang?: T.ListCompanyChatRatingOptionsLang | undefined;
+}
+
 /** Query parameters of `chat.listSuggestions`. */
 export interface ChatListSuggestionsParams {
   /** Язык текстов — язык интерфейса кабинета. Не передан — язык ответов ИИ из профиля (`kk` — по-казахски, иначе по-русски) */
@@ -738,6 +744,17 @@ export class ChatResource {
   }
 
   /**
+   * Что нужно форме оценки: причины «вниз» и предел комментария
+   *
+   * `GET /v1/companies/{co}/chat/rating-options`
+   *
+   * Required permission: `chat.use`.
+   */
+  getRatingOptions(co: string, query?: ChatGetRatingOptionsParams, options?: RequestOptions): APIPromise<T.ChatRatingOptions> {
+    return this.#client.request<T.ChatRatingOptions>({ method: 'GET', path: '/v1/companies/{co}/chat/rating-options', pathParams: { co }, query, options });
+  }
+
+  /**
    * Подсказки пустого чата
    *
    * `GET /v1/companies/{co}/chat/suggestions`
@@ -818,6 +835,50 @@ export class ChatResource {
    */
   listEvents(co: string, id: string, query?: ChatListEventsParams, options?: RequestOptions): ChatStreamPromise {
     return new ChatStreamPromise(this.#client.openStream({ method: 'GET', path: '/v1/companies/{co}/chat/{id}/events', pathParams: { co, id }, query, options }, (init) => new ChatStream(init)));
+  }
+
+  /**
+   * Оценить ответ ИИ: палец вверх или вниз
+   *
+   * `PUT /v1/companies/{co}/chat/{id}/messages/{turn}/rating`
+   *
+   * Required permission: `chat.use`.
+   */
+  rateMessage(co: string, id: string, turn: string, body: T.ChatMessageRatingBody, options?: RequestOptions): APIPromise<T.ChatMessageRated> {
+    return this.#client.request<T.ChatMessageRated>({ method: 'PUT', path: '/v1/companies/{co}/chat/{id}/messages/{turn}/rating', pathParams: { co, id, turn }, body, options });
+  }
+
+  /**
+   * Снять свою оценку ответа
+   *
+   * `DELETE /v1/companies/{co}/chat/{id}/messages/{turn}/rating`
+   *
+   * Required permission: `chat.use`.
+   */
+  deleteMessageRating(co: string, id: string, turn: string, options?: RequestOptions): APIPromise<T.ChatMessageRated> {
+    return this.#client.request<T.ChatMessageRated>({ method: 'DELETE', path: '/v1/companies/{co}/chat/{id}/messages/{turn}/rating', pathParams: { co, id, turn }, options });
+  }
+
+  /**
+   * Оценить разговор целиком: от 1 до 5
+   *
+   * `PUT /v1/companies/{co}/chat/{id}/rating`
+   *
+   * Required permission: `chat.use`.
+   */
+  rate(co: string, id: string, body: T.ChatDialogRatingBody, options?: RequestOptions): APIPromise<T.ChatDialogRated> {
+    return this.#client.request<T.ChatDialogRated>({ method: 'PUT', path: '/v1/companies/{co}/chat/{id}/rating', pathParams: { co, id }, body, options });
+  }
+
+  /**
+   * Не сейчас: закрыть предложение оценить разговор
+   *
+   * `POST /v1/companies/{co}/chat/{id}/rating/dismiss`
+   *
+   * Required permission: `chat.use`.
+   */
+  dismissRating(co: string, id: string, options?: RequestOptions): APIPromise<T.ChatRatingDismissed> {
+    return this.#client.request<T.ChatRatingDismissed>({ method: 'POST', path: '/v1/companies/{co}/chat/{id}/rating/dismiss', pathParams: { co, id }, options });
   }
 
   /**

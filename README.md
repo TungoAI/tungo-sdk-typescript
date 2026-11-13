@@ -301,7 +301,7 @@ The package has two builds selected by the `exports` map: ES modules for `import
 
 ## API reference
 
-Generated from the Tungo Platform API contract: **13 resources, 85 methods, 22 webhook event types**.
+Generated from the Tungo Platform API contract: **13 resources, 90 methods, 22 webhook event types**.
 
 | Resource | Description | Methods |
 | --- | --- | --- |
@@ -310,7 +310,7 @@ Generated from the Tungo Platform API contract: **13 resources, 85 methods, 22 w
 | `platform` | Platform balance, ledger, usage reports, limits, audit log and model rates | `listUsageRates` · `getAccount` · `getAudit` · `getAuditAll` · `getLedger` · `getLedgerAll` · `listLimits` · `listRequests` · `listRequestsAll` · `getUsage` |
 | `apiKeys` | The current API key and its usage statistics | `getCurrent` · `getCurrentUsage` · `getUsage` |
 | `webhooks` | Outgoing webhooks of an organisation (Svix): endpoints, event catalogue, deliveries and signature check | `listEndpoints` · `listEndpointsAll` · `createEndpoint` · `getEndpoint` · `updateEndpoint` · `deleteEndpoint` · `listEndpointAttempts` · `listEndpointAttemptsAll` · `rotateEndpointSecret` · `testEndpoint` · `listEventTypes` · `listMessages` · `listMessagesAll` · `listMessageAttempts` · `listMessageAttemptsAll` · `resendMessage` · `getUsage` |
-| `chat` | Conversations with the AI accountant: questions, streaming chat (SSE), token counting and history | `list` · `listAll` · `create` · `stream` · `countTokens` · `listMentions` · `listSuggestions` · `get` · `update` · `delete` · `answer` · `answerStream` · `listEvents` · `stop` |
+| `chat` | Conversations with the AI accountant: questions, streaming chat (SSE), token counting and history | `list` · `listAll` · `create` · `stream` · `countTokens` · `listMentions` · `getRatingOptions` · `listSuggestions` · `get` · `update` · `delete` · `answer` · `answerStream` · `listEvents` · `rateMessage` · `deleteMessageRating` · `rate` · `dismissRating` · `stop` |
 | `proposals` | Documents proposed by the AI accountant: review, approval for posting to 1C, and rejection | `list` · `listAll` · `approveBatch` · `get` · `approve` · `reject` · `requestApproval` |
 | `feed` | The company's feed of events and proposals (pages and a live SSE stream) | `get` · `getAll` · `listEvents` |
 | `batches` | Processing batches for bank statements, incoming e-invoices and DirectBank | `list` · `listAll` · `createBankStatement` · `createEsfPurchases` · `get` · `listEvents` · `stop` · `getSummary` · `listStatements` · `listStatementsAll` · `pollDirectbank` |

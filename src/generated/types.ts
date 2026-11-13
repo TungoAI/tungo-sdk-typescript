@@ -628,7 +628,7 @@ export interface AuditEntry {
 }
 
 /** Код действия вида «объект.действие». Текст для человека собирайте сами на его языке: по этому коду и параметрам из data (ниже — что значит каждый код). Значения: - `company.created` — Компания заведена - `company.updated… */
-export type AuditEntryAction = 'company.created' | 'company.updated' | 'company.archived' | 'company.unarchived' | 'company.member_added' | 'company.member_role_changed' | 'company.member_removed' | 'company.onboarding_waived' | 'company.onboarding_unwaived' | 'company.onec_connected' | 'company.onec_updated' | 'company.onec_copy_uploaded' | 'company.onec_copy_held' | 'company.onec_connector_code_created' | 'company.onec_connector_paired' | 'company.onec_connector_rotated' | 'company.onec_connector_rotate_refused' | 'company.onec_connector_revoked' | 'company.onec_connector_link_approved' | 'connector.link_created' | 'connector.link_denied' | 'company.onec_link_approved' | 'company.onec_link_revoked' | 'onec_link.wrong_match' | 'company.profile_rebuild' | 'workspace.member_joined' | 'workspace.member_role_changed' | 'workspace.member_removed' | 'workspace.member_access_revoked' | 'workspace.invitation_created' | 'workspace.invitation_cancelled' | 'workspace.policies_updated' | 'workspace.scim_token_created' | 'workspace.scim_token_revoked' | 'workspace.scim_user_provisioned' | 'workspace.scim_user_deprovisioned' | 'workspace.scim_user_deleted' | 'workspace.updated' | 'workspace.sso_provider_updated' | 'workspace.sso_provider_deleted' | 'workspace.sso_domain_verification_requested' | 'workspace.sso_domain_verified' | 'workspace.ownership_transferred' | 'workspace.deleted' | 'workspace.created' | 'team.checkout_abandoned' | 'enterprise.request_created' | 'workspace.converted_to_team' | 'workspace.deletion_scheduled' | 'workspace.deletion_cancelled' | 'workspace.invitation_resent' | 'team.seats_purchased' | 'team.seats_reduced' | 'admin.workspace.kind_changed' | 'admin.workspace.contract_seats' | 'workspace.sso_provider_created' | 'workspace.group_created' | 'workspace.group_updated' | 'workspace.group_deleted' | 'workspace.group_member_added' | 'workspace.group_member_removed' | 'workspace.group_roles_changed' | 'workspace.custom_role_created' | 'workspace.custom_role_updated' | 'workspace.custom_role_deleted' | 'workspace.role_ceiling_updated' | 'workspace.model_policy_updated' | 'workspace.retention_updated' | 'workspace.training_consent' | 'workspace.audit_exported' | 'workspace.compliance_updated' | 'workspace.compliance_read' | 'api_key.created' | 'api_key.updated' | 'api_key.rolled' | 'api_key.revoked' | 'api_key.transferred' | 'api_key.disabled' | 'api_key.enabled' | 'webhook.endpoint_created' | 'webhook.endpoint_updated' | 'webhook.endpoint_deleted' | 'webhook.secret_rotated' | 'webhook.secret_read' | 'webhook.message_resent' | 'company.autonomy.changed' | 'automation.paused' | 'automation.resumed' | 'automation.run.cancel' | 'billing.profile.updated' | 'billing.payment_method.disabled' | 'billing.refund.succeeded' | 'billing.manual_charge' | 'subscription.created' | 'subscription.changed' | 'subscription.cancel_scheduled' | 'subscription.resumed' | 'extra_usage.configured' | 'extra_usage.adjusted' | 'platform.configured' | 'platform.adjusted' | 'extra_usage.member_cap_set' | 'extra_usage.alert_thresholds_set' | 'company.spend_cap_set' | 'team.analytics_exported' | 'team.spend_exported' | 'ai_budget.member_set' | 'ai_budget.member_reset' | 'spend.cap_threshold_reached' | 'spend.company_cap_reached' | 'plan.created' | 'plan.updated' | 'usage_rate.added' | 'user.terms.accepted' | 'account.deletion_code_sent' | 'account.deletion_scheduled' | 'account.deletion_cancelled' | 'account.deleted' | 'account.email_code_sent' | 'account.email_bound' | 'account.telegram_merged' | 'account.google_linked' | 'account.telegram_merge_refused' | 'admin.ads.conversions_released' | 'admin.ads.conversions_rejected' | 'admin.ads.signups_exported' | 'admin.access.signed_in' | 'admin.access.refused' | 'admin.two_factor.verified' | 'admin.two_factor.enable_requested' | 'admin.two_factor.enabled' | 'admin.two_factor.disabled' | 'admin.session.signed_in' | 'admin.user.banned' | 'admin.user.unbanned' | 'admin.workspace.blocked' | 'admin.workspace.unblocked' | 'admin.workspace.training_consent' | 'admin.user.platform_roles_changed' | 'admin.user.free_eligibility_changed' | 'admin.user.limit_resets_granted' | 'admin.user.limit_resets_revoked' | 'usage.limit_reset_applied' | 'referral.claimed' | 'referral.rewarded' | 'admin.enterprise_request.status_changed' | 'admin.training.exported' | 'admin.setting.changed' | 'admin.logs.purged' | 'admin.dialog.pd_viewed' | 'admin.dialog.label_set' | 'admin.dialog.label_removed' | 'admin.journal.pd_viewed' | 'admin.company.pd_viewed' | 'admin.company.pd_searched' | 'admin.payment.pd_viewed' | 'site.post_published' | 'site.post_unpublished' | 'site.post_deleted' | 'site.legal_published' | 'site.trackers_saved' | 'canary.triggered' | 'billing.payment.new' | 'billing.payment.pending' | 'billing.payment.requires_action' | 'billing.payment.authorized' | 'billing.payment.succeeded' | 'billing.payment.verified' | 'billing.payment.failed' | 'billing.payment.cancelled' | 'billing.payment.partially_refunded' | 'billing.payment.refunded';
+export type AuditEntryAction = 'company.created' | 'company.updated' | 'company.archived' | 'company.unarchived' | 'company.member_added' | 'company.member_role_changed' | 'company.member_removed' | 'company.onboarding_waived' | 'company.onboarding_unwaived' | 'company.onec_connected' | 'company.onec_updated' | 'company.onec_copy_uploaded' | 'company.onec_copy_held' | 'company.onec_connector_code_created' | 'company.onec_connector_paired' | 'company.onec_connector_rotated' | 'company.onec_connector_rotate_refused' | 'company.onec_connector_revoked' | 'company.onec_connector_link_approved' | 'connector.link_created' | 'connector.link_denied' | 'company.onec_link_approved' | 'company.onec_link_revoked' | 'onec_link.wrong_match' | 'company.profile_rebuild' | 'workspace.member_joined' | 'workspace.member_role_changed' | 'workspace.member_removed' | 'workspace.member_access_revoked' | 'workspace.invitation_created' | 'workspace.invitation_cancelled' | 'workspace.policies_updated' | 'workspace.scim_token_created' | 'workspace.scim_token_revoked' | 'workspace.scim_user_provisioned' | 'workspace.scim_user_deprovisioned' | 'workspace.scim_user_deleted' | 'workspace.updated' | 'workspace.sso_provider_updated' | 'workspace.sso_provider_deleted' | 'workspace.sso_domain_verification_requested' | 'workspace.sso_domain_verified' | 'workspace.ownership_transferred' | 'workspace.deleted' | 'workspace.created' | 'team.checkout_abandoned' | 'enterprise.request_created' | 'workspace.converted_to_team' | 'workspace.deletion_scheduled' | 'workspace.deletion_cancelled' | 'workspace.invitation_resent' | 'team.seats_purchased' | 'team.seats_reduced' | 'admin.workspace.kind_changed' | 'admin.workspace.contract_seats' | 'admin.plan_grant.created' | 'admin.plan_grant.extended' | 'admin.plan_grant.revoked' | 'admin.plan_grant.ended' | 'admin.platform_discount.created' | 'admin.platform_discount.revoked' | 'admin.subscription.cancelled' | 'admin.subscription.resumed' | 'admin.money.exported' | 'admin.payment_search.pd_viewed' | 'workspace.sso_provider_created' | 'workspace.group_created' | 'workspace.group_updated' | 'workspace.group_deleted' | 'workspace.group_member_added' | 'workspace.group_member_removed' | 'workspace.group_roles_changed' | 'workspace.custom_role_created' | 'workspace.custom_role_updated' | 'workspace.custom_role_deleted' | 'workspace.role_ceiling_updated' | 'workspace.model_policy_updated' | 'workspace.retention_updated' | 'workspace.training_consent' | 'workspace.audit_exported' | 'workspace.compliance_updated' | 'workspace.compliance_read' | 'api_key.created' | 'api_key.updated' | 'api_key.rolled' | 'api_key.revoked' | 'api_key.transferred' | 'api_key.disabled' | 'api_key.enabled' | 'webhook.endpoint_created' | 'webhook.endpoint_updated' | 'webhook.endpoint_deleted' | 'webhook.secret_rotated' | 'webhook.secret_read' | 'webhook.message_resent' | 'company.autonomy.changed' | 'automation.paused' | 'automation.resumed' | 'automation.run.cancel' | 'billing.profile.updated' | 'billing.payment_method.disabled' | 'billing.refund.succeeded' | 'billing.manual_charge' | 'subscription.created' | 'subscription.changed' | 'subscription.cancel_scheduled' | 'subscription.resumed' | 'extra_usage.configured' | 'extra_usage.adjusted' | 'platform.configured' | 'platform.adjusted' | 'extra_usage.member_cap_set' | 'extra_usage.alert_thresholds_set' | 'company.spend_cap_set' | 'team.analytics_exported' | 'team.spend_exported' | 'ai_budget.member_set' | 'ai_budget.member_reset' | 'spend.cap_threshold_reached' | 'spend.company_cap_reached' | 'plan.created' | 'plan.updated' | 'usage_rate.added' | 'user.terms.accepted' | 'account.deletion_code_sent' | 'account.deletion_scheduled' | 'account.deletion_cancelled' | 'account.deleted' | 'langfuse.traces_purged' | 'admin.dialog.langfuse_dataset' | 'admin.dialog.langfuse_annotation' | 'account.email_code_sent' | 'account.email_bound' | 'account.telegram_merged' | 'account.google_linked' | 'account.telegram_merge_refused' | 'admin.ads.conversions_released' | 'admin.ads.conversions_rejected' | 'admin.ads.signups_exported' | 'admin.access.signed_in' | 'admin.access.refused' | 'admin.two_factor.verified' | 'admin.two_factor.enable_requested' | 'admin.two_factor.enabled' | 'admin.two_factor.disabled' | 'admin.session.signed_in' | 'admin.user.banned' | 'admin.user.unbanned' | 'admin.workspace.blocked' | 'admin.workspace.unblocked' | 'admin.workspace.training_consent' | 'admin.user.platform_roles_changed' | 'admin.user.free_eligibility_changed' | 'admin.user.limit_resets_granted' | 'admin.user.limit_resets_revoked' | 'usage.limit_reset_applied' | 'referral.claimed' | 'referral.rewarded' | 'admin.enterprise_request.status_changed' | 'admin.training.exported' | 'admin.setting.changed' | 'admin.logs.purged' | 'admin.dialog.pd_viewed' | 'admin.dialog.rating_comments_viewed' | 'admin.dialog.label_set' | 'admin.dialog.label_removed' | 'admin.journal.pd_viewed' | 'admin.company.pd_viewed' | 'admin.company.pd_searched' | 'admin.payment.pd_viewed' | 'site.post_published' | 'site.post_unpublished' | 'site.post_deleted' | 'site.legal_published' | 'site.trackers_saved' | 'help.section_created' | 'help.section_updated' | 'help.section_deleted' | 'help.article_created' | 'help.article_updated' | 'help.article_deleted' | 'help.reordered' | 'support.ticket_created' | 'admin.support.replied' | 'admin.support.note_added' | 'admin.support.ticket_updated' | 'admin.support.attachment_viewed' | 'canary.triggered' | 'billing.payment.new' | 'billing.payment.pending' | 'billing.payment.requires_action' | 'billing.payment.authorized' | 'billing.payment.succeeded' | 'billing.payment.verified' | 'billing.payment.failed' | 'billing.payment.cancelled' | 'billing.payment.partially_refunded' | 'billing.payment.refunded';
 
 /** Кто сделал */
 export interface AuditEntryActor {
@@ -1996,12 +1996,16 @@ export interface ChatAssistantMessage {
   next_action: ChatNextAction | null;
   /** Номера предложений этого хода — то же, что proposal-блоки, списком */
   proposal_ids: string[];
+  /** Оценка этого ответа человеком; null — не оценён */
+  rating: ChatMessageRating | null;
   /** Ответ ИИ */
   role: 'assistant';
   /** done — ход закончился сам; stopped — нажали «Стоп»; error — ошибка, отказ модели или предел шагов */
   state: ChatAssistantMessageState;
   /** Размышления модели за ход одним текстом; пусто — не было */
   thinking: string;
+  /** Номер ответа в разговоре (он же X-Turn-No и средняя часть id): по нему ответ оценивают — PUT …/chat/{id}/messages/{turn}/rating */
+  turn_no: number | bigint;
 }
 
 /** done — ход закончился сам; stopped — нажали «Стоп»; error — ошибка, отказ модели или предел шагов */
@@ -2061,15 +2065,35 @@ export interface ChatChoiceQuestion {
   question: string;
 }
 
-/** Источник ответа: норма закона, статья базы знаний */
+/** Источник ответа: норма закона, статья базы знаний. Список источников — по порядку первой ссылки в тексте ответа, без повторов. В самом тексте ответа списка источников нет: только короткие ссылки по месту («(НК РК, ст. 44… */
 export interface ChatCitation {
-  /** Редакция нормы (на какую дату) */
+  /** Номер статьи */
+  article?: string;
+  /** Номер главы — у источников без статей */
+  chapter?: string;
+  /** Документ коротко: принятое сокращение, если оно есть в базе («НК РК»), иначе название обычным регистром («Социальный кодекс Республики Казахстан») */
+  document: string;
+  /** Редакция нормы словами */
   edition?: string;
-  /** Откуда: код нормы или статьи базы знаний */
+  /** Дата начала редакции, ГГГГ-ММ-ДД */
+  edition_date?: string;
+  /** Заголовок статьи без «Статья N.» — вторая строка чипа или подсказка */
+  heading?: string;
+  /** Короткая подпись для чипа: документ и место в нём, без редакции и пометок */
+  label: string;
+  /** Как источник назван в тексте ответа — дословные куски текста («ст. 445», «статьи 445»): их можно сделать ссылкой на этот источник. Только в итоге хода и в истории, в событии потока поля нет. Поля нет и тогда, когда стать… */
+  mentions?: string[];
+  /** Пометка о статусе или природе источника — показывать обязательно: «УТРАТИЛА СИЛУ с 01.01.2026», «по разъяснению КГД», «позиция органа (не норма права)» */
+  note?: string;
+  /** Номер пункта */
+  point?: string;
+  /** Подпись целиком, как раньше: документ, место, редакция и пометки одной строкой. Для показа удобнее label, edition и note по отдельности */
   source: string;
-  /** Название источника для показа */
+  /** Номер подпункта */
+  subpoint?: string;
+  /** Заголовок статьи целиком, с «Статья N.» (как раньше). Без номера — heading */
   title: string;
-  /** Ссылка на текст источника, если есть */
+  /** Ссылка на текст источника: по ней источник открывают. Она же — ключ источника внутри ответа */
   url?: string;
 }
 
@@ -2090,6 +2114,10 @@ export interface ChatDialog {
   messages: ChatMessage[];
   /** false — персональные данные не раскрыты (сменился ключ шифрования): вместо БИН, имён и счетов в тексте метки вида «[ПД-БИН-1]». Показать предупреждение */
   pd_restored: boolean;
+  /** Оценка разговора человеком; null — не оценён */
+  rating: ChatDialogRating | null;
+  /** true — пора предложить человеку оценить разговор (форма 1–5 с комментарием). Решает ядро по настройке: достаточно ответов ИИ в разговоре, разговор не оценён, человек не нажимал «не сейчас», и ему не предлагали в последни… */
+  rating_prompt: boolean;
   /** true — идёт ход: дочитать его потоком GET …/chat/{id}/events?turn=<turn> */
   running: boolean;
   /** Название одной строкой: человека, иначе от ИИ, иначе первый вопрос. Откуда оно — title_source */
@@ -2129,6 +2157,33 @@ export interface ChatDialogList {
 export interface ChatDialogPatch {
   /** Новое название, до 64 символов; пустая строка — вернуть автоматическое название (от ИИ, а пока его нет — первый вопрос) */
   title: string;
+}
+
+/** Оценка разговора после изменения */
+export interface ChatDialogRated {
+  /** id разговора (обычно UUID): по нему продолжают разговор (dialog_id), открывают его GET …/chat/{id} и стирают */
+  id: string;
+  rating: ChatDialogRating;
+  /** Всегда false: предлагать больше не нужно */
+  rating_prompt: false;
+}
+
+/** Оценка разговора человеком */
+export interface ChatDialogRating {
+  /** Когда оценка поставлена или изменена, ISO 8601 UTC */
+  at: string;
+  /** Комментарий человека; null — без комментария */
+  comment: string | null;
+  /** Оценка разговора: от 1 (плохо) до 5 (отлично) */
+  score: number;
+}
+
+/** Оценка разговора */
+export interface ChatDialogRatingBody {
+  /** Комментарий человека, необязательный; предел длины — comment_chars из GET …/chat/rating-options */
+  comment?: string | null;
+  /** Оценка разговора: от 1 (плохо) до 5 (отлично). Повторная оценка заменяет прежнюю */
+  score: number;
 }
 
 /** Разговор с новым названием */
@@ -2201,17 +2256,35 @@ export interface ChatEventChoice {
   type: 'choice';
 }
 
-/** Источник ответа: норма закона, статья базы знаний */
+/** Источник ответа: норма закона, статья базы знаний. Приходят по порядку первой ссылки в тексте, каждый источник один раз за ход. Вопросы-продолжения — отдельное событие next */
 export interface ChatEventCitation {
-  /** Редакция нормы */
+  /** Номер статьи */
+  article?: string;
+  /** Номер главы — у источников без статей */
+  chapter?: string;
+  /** Документ коротко: принятое сокращение, если оно есть в базе («НК РК»), иначе название обычным регистром («Социальный кодекс Республики Казахстан») */
+  document: string;
+  /** Редакция нормы словами */
   edition?: string;
-  /** Откуда: код нормы или статьи базы знаний */
+  /** Дата начала редакции, ГГГГ-ММ-ДД */
+  edition_date?: string;
+  /** Заголовок статьи без «Статья N.» — вторая строка чипа или подсказка */
+  heading?: string;
+  /** Короткая подпись для чипа: документ и место в нём, без редакции и пометок */
+  label: string;
+  /** Пометка о статусе или природе источника — показывать обязательно: «УТРАТИЛА СИЛУ с 01.01.2026», «по разъяснению КГД», «позиция органа (не норма права)» */
+  note?: string;
+  /** Номер пункта */
+  point?: string;
+  /** Подпись целиком, как раньше: документ, место, редакция и пометки одной строкой. Для показа удобнее label, edition и note по отдельности */
   source: string;
-  /** Название источника */
+  /** Номер подпункта */
+  subpoint?: string;
+  /** Заголовок статьи целиком, с «Статья N.» (как раньше). Без номера — heading */
   title: string;
   /** Вид события: citation */
   type: 'citation';
-  /** Ссылка на текст источника */
+  /** Ссылка на текст источника: по ней источник открывают. Она же — ключ источника внутри ответа */
   url?: string;
 }
 
@@ -2223,6 +2296,8 @@ export interface ChatEventDone {
   choice_id?: string;
   /** Сколько ход стоил, в тиынах (1 ₸ = 100 тиын). Только в потоке для ключа API (платформа разработчиков); кабинету стоимость ответа не отдаётся */
   cost_tiyn?: number | bigint;
+  /** Пора предложить человеку оценить разговор — те же правила, что у rating_prompt в GET …/chat/{id}. Поля нет — не предлагать. Ключу API не приходит */
+  rating_prompt?: true;
   /** Чем кончился ход: end_turn — ответ готов; awaiting_user — ждёт ответа на вопрос choice; budget — кончился лимит; aborted — остановили; refusal — модель отказалась; context_overflow — разговор слишком длинный; max_iterati… */
   stop_reason?: string;
   /** Вид события: done */
@@ -2481,6 +2556,46 @@ export type ChatMentionUnavailableType = 'proposal' | 'counterparty' | 'batch';
 /** Сообщение разговора: вопрос человека (role = user) или ответ ИИ (role = assistant) */
 export type ChatMessage = ChatUserMessage | ChatAssistantMessage;
 
+/** Оценка ответа после изменения */
+export interface ChatMessageRated {
+  /** id разговора (обычно UUID): по нему продолжают разговор (dialog_id), открывают его GET …/chat/{id} и стирают */
+  dialog_id: string;
+  /** id сообщения в истории */
+  message_id: string;
+  /** Оценка теперь; null — снята */
+  rating: ChatMessageRating | null;
+  /** Номер ответа */
+  turn_no: number | bigint;
+}
+
+/** Оценка ответа ИИ человеком */
+export interface ChatMessageRating {
+  /** Когда оценка поставлена или изменена, ISO 8601 UTC */
+  at: string;
+  /** Комментарий человека; null — без комментария */
+  comment: string | null;
+  /** Причина оценки down — ключ из GET …/chat/rating-options; null — не указана или оценка up */
+  reason: string | null;
+  /** up — палец вверх, down — палец вниз */
+  vote: ChatMessageRatingVote;
+}
+
+/** Оценка ответа */
+export interface ChatMessageRatingBody {
+  /** Комментарий человека, необязательный; предел длины — comment_chars из GET …/chat/rating-options */
+  comment?: string | null;
+  /** Причина оценки down — ключ из GET …/chat/rating-options; можно прислать позже повторным PUT. У оценки up причины нет */
+  reason?: string | null;
+  /** up — ответ хороший, down — плохой. Повторная оценка того же ответа заменяет прежнюю */
+  vote: ChatMessageRatingBodyVote;
+}
+
+/** up — ответ хороший, down — плохой. Повторная оценка того же ответа заменяет прежнюю */
+export type ChatMessageRatingBodyVote = 'up' | 'down';
+
+/** up — палец вверх, down — палец вниз */
+export type ChatMessageRatingVote = 'up' | 'down';
+
 /** Вопрос ИИ-бухгалтеру */
 export interface ChatMessageRequest {
   /** Файлы к вопросу. До 5 файлов, каждый до 10 МБ, все вместе до 14 МБ (до кодирования в base64). Картинка — до 5 МБ, PDF — до 100 страниц. Форматы (по расширению имени): .pdf, .jpg, .jpeg, .png, .webp, .docx, .xlsx, .xls, .… */
@@ -2542,6 +2657,39 @@ export interface ChatQuestion {
   proposal_id?: string;
   /** Вопрос ИИ к человеку */
   text: string;
+}
+
+/** Предложение оценить закрыто */
+export interface ChatRatingDismissed {
+  /** id разговора (обычно UUID): по нему продолжают разговор (dialog_id), открывают его GET …/chat/{id} и стирают */
+  id: string;
+  /** Всегда false */
+  rating_prompt: false;
+}
+
+/** Настройки формы оценки */
+export interface ChatRatingOptions {
+  /** Предел длины комментария в знаках; 0 — поле комментария не показывать */
+  comment_chars: number | bigint;
+  /** Шкала оценки разговора */
+  dialog_scores: ChatRatingOptionsDialogScores;
+  /** Причины оценки «вниз», по порядку показа */
+  reasons: ChatRatingOptionsReasonItem[];
+}
+
+/** Шкала оценки разговора */
+export interface ChatRatingOptionsDialogScores {
+  /** Высшая оценка разговора */
+  max: number | bigint;
+  /** Низшая оценка разговора */
+  min: number | bigint;
+}
+
+export interface ChatRatingOptionsReasonItem {
+  /** Ключ причины — его слать в reason */
+  key: string;
+  /** Название для показа */
+  title: string;
 }
 
 /** Итог «Стоп» */
@@ -3590,6 +3738,9 @@ export interface ListCompanyAutomationsScenariosResponse {
   /** Элементы списка — весь список одним ответом, без страниц */
   data: AutomationScenario[];
 }
+
+/** Язык названий причин; по умолчанию ru */
+export type ListCompanyChatRatingOptionsLang = 'ru' | 'kk';
 
 /** Язык текстов — язык интерфейса кабинета. Не передан — язык ответов ИИ из профиля (`kk` — по-казахски, иначе по-русски) */
 export type ListCompanyChatSuggestionsLang = 'ru' | 'kk';
