@@ -115,6 +115,17 @@ describe('configuration', () => {
     }
   });
 
+  it('checks a per-request streamIdleTimeout before the chat turn is sent', async () => {
+    // Found only after the POST, the turn would already run (and be billed) on the server.
+    const { fetch, calls } = fakeFetch(() => new Response('', { status: 200, headers: { 'content-type': 'text/event-stream' } }));
+    const client = new Tungo({ apiKey: API_KEY, fetch });
+    for (const streamIdleTimeout of [-1, Number.NaN]) {
+      const err = await rejection(client.chat.stream('co_1', { message: 'hi' }, { streamIdleTimeout }));
+      assert.ok(err instanceof ConfigError, String(err));
+    }
+    assert.equal(calls.length, 0);
+  });
+
   it('rejects invalid options', () => {
     const bad: Array<ConstructorParameters<typeof Tungo>[0]> = [
       { baseUrl: 'not a url' },
@@ -451,6 +462,47 @@ describe('errors', () => {
       text += ' ' + String(cause) + ' ' + String(cause.stack);
     }
     assert.ok(!text.includes(token), text);
+  });
+
+  it('keeps the hook token out of the message when a custom fetch names the URL in its error', async () => {
+    // node-fetch and many proxy or tracing wrappers put the full URL into their error text.
+    const token = 'hk_SECRET_TOKEN_456';
+    const events: LogEvent[] = [];
+    const client = new Tungo({
+      apiKey: API_KEY,
+      maxRetries: 1,
+      logger: (event) => events.push(event),
+      fetch: (url) => Promise.reject(new Error('request to ' + url + ' failed, reason: connect ECONNREFUSED')),
+    });
+    const err = await rejection(client.sendHook(token, { a: 1 }));
+    assert.ok(err instanceof ConnectionError);
+    assert.match(err.message, /POST \/hooks\/\{token\}/);
+    assert.match(err.message, /ECONNREFUSED/);
+    assert.ok(!err.message.includes(token), err.message);
+    assert.ok(!String(err).includes(token));
+    assert.ok(events.length > 0);
+    for (const event of events) {
+      const shown = JSON.stringify({ ...event, error: event.error === undefined ? undefined : String(event.error) });
+      assert.ok(!shown.includes(token), shown);
+    }
+  });
+
+  it('a key or header value outside Latin-1 fails locally before any request', async () => {
+    const { fetch, calls } = fakeFetch(() => json({ data: [], has_more: false, next_cursor: null }));
+    const lookAlike = 'tg_\u043a\u043b\u044e\u0447';
+    for (const client of [
+      new Tungo({ apiKey: lookAlike, fetch }),
+      new Tungo({ apiKey: 'tg_abc\n', fetch }),
+    ]) {
+      const err = await rejection(client.companies.list());
+      assert.ok(err instanceof ConfigError, String(err));
+      assert.ok(!err.message.includes(lookAlike));
+    }
+    const withHeader = new Tungo({ apiKey: API_KEY, fetch, defaultHeaders: { 'X-Note': '\u041f\u0440\u0438\u0432\u0435\u0442' } });
+    const err = await rejection(withHeader.companies.list());
+    assert.ok(err instanceof ValidationError, String(err));
+    assert.ok(!(err instanceof ConnectionError));
+    assert.equal(calls.length, 0);
   });
 });
 

@@ -399,6 +399,27 @@ function causeText(cause: unknown): string {
   return cause.message;
 }
 
+/**
+ * The text of a transport failure without the request URL: a custom fetch (node-fetch, a proxy
+ * or tracing wrapper) may put the full URL into its message, and the path can carry a hook token
+ * and the query search text. The URL and the concrete path become the route template, and any
+ * other absolute URL and every path parameter value are cut out.
+ */
+function redactedCauseText(cause: unknown, baseUrl: string, url: string, spec: RequestSpec): string {
+  let text = causeText(cause);
+  const path = buildPath(spec.path, spec.pathParams);
+  const pathAndQuery = url.slice(baseUrl.length);
+  for (const concrete of [url, url.split('?')[0] ?? url, pathAndQuery, path]) {
+    if (concrete !== '' && concrete !== '/') text = text.split(concrete).join(spec.path);
+  }
+  text = text.replace(/\b[a-z][a-z0-9+.-]*:\/\/[^\s"'<>]*/gi, '[url]');
+  for (const value of Object.values(spec.pathParams ?? {})) {
+    if (typeof value !== 'string' || value === '') continue;
+    for (const form of new Set([value, encodeURIComponent(value)])) text = text.split(form).join('[redacted]');
+  }
+  return text;
+}
+
 function positive(value: number | undefined, fallback: number, name: string, zeroAllowed: boolean): number {
   if (value === undefined) return fallback;
   if (typeof value !== 'number' || Number.isNaN(value) || value < 0 || (value === 0 && !zeroAllowed)) {
@@ -415,11 +436,24 @@ function retries(value: number | undefined, fallback: number): number {
   return value;
 }
 
+/**
+ * Whether a header value can be sent at all: fetch refuses CR, LF and NUL, and a character above
+ * U+00FF (a Cyrillic look-alike pasted into a key) is not a byte, so fetch would throw a
+ * TypeError that looks like a network failure.
+ */
+function sendableHeaderValue(value: string): boolean {
+  for (let i = 0; i < value.length; i++) {
+    const code = value.charCodeAt(i);
+    if (code === 0 || code === 10 || code === 13 || code > 0xff) return false;
+  }
+  return true;
+}
+
 class HeaderBag {
   #map = new Map<string, [string, string]>();
 
   set(name: string, value: string): void {
-    if (value.includes('\r') || value.includes('\n') || value.includes('\0') || !/^[!#$%&'*+.^_|~0-9A-Za-z-]+$/.test(name)) {
+    if (!sendableHeaderValue(value) || !/^[!#$%&'*+.^_|~0-9A-Za-z-]+$/.test(name)) {
       throw new ValidationError('The header "' + name.replace(/[^ -~]/g, '?') + '" has an invalid name or value');
     }
     this.#map.set(name.toLowerCase(), [name, value]);
@@ -605,18 +639,28 @@ export class APIClient {
   }
 
   /** Opens a server-sent event stream; `make` wraps the connection into the stream object. */
-  openStream<S>(spec: RequestSpec, make: (init: StreamInit) => S): Promise<S> {
-    return this.#exchange(spec, true).then((x) =>
-      make({
+  async openStream<S>(spec: RequestSpec, make: (init: StreamInit) => S): Promise<S> {
+    // Checked before anything is sent: once the turn is posted it runs (and is billed) on the
+    // server, so a bad option found afterwards would cost a turn and leave the connection open.
+    const idleTimeout = positive(spec.options?.streamIdleTimeout, this.streamIdleTimeout, 'streamIdleTimeout', true);
+    const x = await this.#exchange(spec, true);
+    try {
+      return make({
         response: x.info,
         body: x.response.body,
         controller: x.controller,
         signal: spec.options?.signal ?? undefined,
         detach: x.detach,
-        idleTimeout: positive(spec.options?.streamIdleTimeout, this.streamIdleTimeout, 'streamIdleTimeout', true),
+        idleTimeout,
         route: spec.method.toUpperCase() + ' ' + spec.path,
-      }),
-    );
+      });
+    } catch (error) {
+      // The stream object never came to be: nobody else can close the connection.
+      x.detach();
+      x.controller.abort();
+      x.response.body?.cancel().catch(() => undefined);
+      throw error;
+    }
   }
 
   async #requestJSON<T>(spec: RequestSpec): Promise<WithResponse<T>> {
@@ -670,6 +714,12 @@ export class APIClient {
       const key = this.#apiKey;
       if (key === undefined) {
         throw new ConfigError('No API key: pass "apiKey" to the client or set the TUNGO_API_KEY environment variable');
+      }
+      if (!sendableHeaderValue(key)) {
+        // Never the key itself: only what is wrong with it.
+        throw new ConfigError(
+          'The API key contains a character that cannot be sent in a header (a line break, or a letter outside Latin-1 such as a Cyrillic look-alike): check "apiKey" or TUNGO_API_KEY',
+        );
       }
       if (this.#bearer) bag.set('Authorization', 'Bearer ' + key);
       else bag.set('x-api-key', key);
@@ -818,7 +868,7 @@ export class APIClient {
           failure = new TimeoutError('The request ' + route + ' timed out after ' + timeout + ' ms', timeout, { cause: reason });
           cause = 'timeout';
         } else {
-          failure = new ConnectionError('Could not reach the API for ' + route + ': ' + causeText(reason), { cause: reason });
+          failure = new ConnectionError('Could not reach the API for ' + route + ': ' + redactedCauseText(reason, this.baseUrl, url, spec), { cause: reason });
           cause = 'connection_error';
         }
       } finally {
