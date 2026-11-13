@@ -12,6 +12,7 @@ import {
   LimitError,
   PermissionError,
   Stream,
+  StreamError,
   TimeoutError,
   TungoError,
   accumulateChatStream,
@@ -212,6 +213,32 @@ drain(stream),
         assert.ok(err instanceof TimeoutError, String(err));
         assert.equal(err.timeout, 1500);
         assert.deepEqual(seen, ['text']);
+      },
+    );
+  });
+
+  it('ends a feed stream that reports an error event with a StreamError, never a bogus item', async () => {
+    await withServer(
+      (_request, response) => {
+        response.writeHead(200, { ...SSE, 'x-request-id': 'req_feed' });
+        response.write('event: feed\ndata: ' + JSON.stringify({ id: 'f1', cursor: 'c1' }) + '\n\n');
+        response.write('event: error\ndata: ' + JSON.stringify({ error: 'feed_failed', message: 'Лента недоступна' }) + '\n\n');
+        response.write('event: feed\ndata: ' + JSON.stringify({ id: 'f2', cursor: 'c2' }) + '\n\n');
+        response.end();
+      },
+      async (server) => {
+        const ids: string[] = [];
+        const err = await rejection(
+          (async () => {
+            for await (const item of server.client().feed.listEvents('co', { once: '1' } as never)) ids.push(item.id);
+          })(),
+        );
+        assert.deepEqual(ids, ['f1']);
+        assert.ok(err instanceof StreamError, String(err));
+        assert.ok(err instanceof TungoError);
+        assert.equal(err.code, 'feed_failed');
+        assert.equal(err.detail, 'Лента недоступна');
+        assert.equal(err.requestId, 'req_feed');
       },
     );
   });

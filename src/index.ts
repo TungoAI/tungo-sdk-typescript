@@ -34,6 +34,7 @@ export {
   NotFoundError,
   PaymentRequiredError,
   PermissionError,
+  StreamError,
   TimeoutError,
   TungoError,
   UnavailableError,

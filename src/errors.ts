@@ -112,6 +112,39 @@ export class DecodeError extends TungoError {
   }
 }
 
+/**
+ * A stream of items (not chat events; for example `feed.listEvents`) carried an `error` event: the
+ * server could not go on and ended the stream. It is thrown by the `for await` loop after the
+ * items that came before it. The stream did not finish: reconnect (from the cursor of the last
+ * item) to resume it.
+ */
+export class StreamError extends TungoError {
+  /** The machine-readable reason, for example `feed_failed`; null when the event had none. */
+  readonly code: string | null;
+  /** The text for people. */
+  readonly detail: string;
+  /** Request id: `request_id` of the event, else the `x-request-id` header. Quote it to support. */
+  readonly requestId: string | null;
+  /** Every other property of the event data. */
+  readonly extra: Record<string, unknown>;
+  /** The data of the event as received (possibly truncated to 2000 characters). */
+  readonly body: string;
+
+  constructor(init: { code: string | null; detail: string; requestId: string | null; extra: Record<string, unknown>; body: string }) {
+    let text = 'Tungo stream error';
+    if (init.code !== null) text += ' (' + init.code + ')';
+    text += ': ' + init.detail;
+    if (init.requestId !== null) text += ' [request id ' + init.requestId + ']';
+    super(text);
+    this.name = 'StreamError';
+    this.code = init.code;
+    this.detail = init.detail;
+    this.requestId = init.requestId;
+    this.extra = init.extra;
+    this.body = init.body.length > 2000 ? init.body.slice(0, 2000) : init.body;
+  }
+}
+
 /** Why a webhook was rejected. */
 export type WebhookVerificationReason =
   | 'invalid_tolerance'

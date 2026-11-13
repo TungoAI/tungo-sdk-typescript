@@ -170,7 +170,7 @@ export class ChatStream extends Stream<T.ChatEvent> {
   readonly turnNo: number | null;
 
   constructor(init: StreamInit) {
-    super(init, (event, response) => decodeJSONEvent<T.ChatEvent>(event, response));
+    super(init, (event, response) => decodeJSONEvent<T.ChatEvent>(event, response, true));
     const dialogId = init.response.headers.get('x-dialog-id');
     this.dialogId = dialogId === null || dialogId === '' ? null : dialogId;
     const turnNo = init.response.headers.get('x-turn-no');
