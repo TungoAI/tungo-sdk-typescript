@@ -455,6 +455,26 @@ describe('errors', () => {
 });
 
 describe('retries', () => {
+  it('the idempotency_key of an approval body is the Idempotency-Key unless one is given', async () => {
+    // The API prefers the header over the documented body field: a generated header would make a
+    // repeat of the same click a new approval.
+    await withServer(
+      (_request, response) => {
+        sendJSON(response, 200, {});
+      },
+      async (server) => {
+        const client = server.client();
+        await client.proposals.approve('co', 'P-1', { idempotency_key: ' click-7 ' });
+        await client.proposals.approveBatch('co', { idempotency_key: 'click-8' });
+        await client.proposals.approve('co', 'P-1', { idempotency_key: 'click-7' }, { idempotencyKey: 'own' });
+        await client.proposals.approve('co', 'P-1', {});
+        const keys = server.requests.map((r) => r.headers['idempotency-key']);
+        assert.deepEqual(keys.slice(0, 3), ['click-7', 'click-8', 'own']);
+        assert.match(String(keys[3]), /^[0-9a-f-]{36}$/);
+      },
+    );
+  });
+
   it('retries retryable statuses up to maxRetries with the same idempotency key', async () => {
     await withServer(
       (request, response) => {

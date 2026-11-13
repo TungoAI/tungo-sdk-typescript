@@ -2,6 +2,7 @@
 import { APIClient, sleep, startTimer, type APIPromise, type ClientOptions, type RequestOptions, type RequestSpec } from './core.js';
 import { chatTurnError, type ChatStreamCallbacks, type ChatStreamPromise, type ChatStreamResult } from './chat.js';
 import { AbortError, DecodeError, TimeoutError } from './errors.js';
+import { debugJSON } from './json.js';
 import { bytesToBase64, verifyWebhook, type HeadersLike, type HookPayload, type SendHookOptions, type VerifyWebhookOptions } from './webhooks.js';
 import * as R from './generated/resources.js';
 import type * as T from './generated/types.js';
@@ -155,7 +156,8 @@ export class Tungo {
 
   /**
    * Sends an event to an incoming automation hook (`/hooks/{token}`). With `secret`, the exact
-   * bytes sent are signed in the `X-Signature: sha256=<hex>` header. The API key is not sent.
+   * bytes sent are signed in the `X-Signature: sha256=<hex>` header, or in `signatureHeader` for a
+   * hook created with its own `signature_header`. The API key is not sent.
    * Same as `client.automations.postHook`.
    */
   sendHook(token: string, payload: HookPayload, options?: SendHookOptions): APIPromise<T.AutomationHookAccepted> {
@@ -193,7 +195,7 @@ export class Tungo {
       (run, response) => {
         const state: unknown = (run as { state?: unknown } | null)?.state;
         if (typeof state !== 'string') {
-          throw new DecodeError('The automation run has no "state"', { status: response.status, requestId: response.requestId, body: JSON.stringify(run) ?? '' });
+          throw new DecodeError('The automation run has no "state"', { status: response.status, requestId: response.requestId, body: debugJSON(run) });
         }
         return RUN_FINAL_STATES.includes(state);
       },
@@ -209,7 +211,7 @@ export class Tungo {
       (job, response) => {
         const running: unknown = (job as { running?: unknown } | null)?.running;
         if (typeof running !== 'boolean') {
-          throw new DecodeError('The batch job has no "running" flag', { status: response.status, requestId: response.requestId, body: JSON.stringify(job) ?? '' });
+          throw new DecodeError('The batch job has no "running" flag', { status: response.status, requestId: response.requestId, body: debugJSON(job) });
         }
         return !running;
       },

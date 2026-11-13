@@ -3,7 +3,7 @@
 // Page objects and auto-pagination.
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { DecodeError, NotFoundError, Page, TungoError } from '../src/index.js';
+import { APIError, DecodeError, NotFoundError, Page, TungoError, chatTurnError, parseJSON } from '../src/index.js';
 import { errorBody, rejection, sendJSON, withServer, type Handler } from './support.js';
 
 /** Three pages of two items; the cursor is the index of the next page. */
@@ -38,6 +38,33 @@ describe('pagination', () => {
       assert.equal(last.nextCursor, null);
       assert.ok((await rejection(last.getNextPage())) instanceof TungoError);
     });
+  });
+
+  it('a malformed answer carrying an integer beyond 2^53 is still a DecodeError, with every digit', async () => {
+    // parseJSON turns such an integer into a bigint, which plain JSON.stringify refuses with a TypeError.
+    await withServer(
+      (request, response) => {
+        if (request.path.endsWith('/proposals')) {
+          response.writeHead(200, { 'content-type': 'application/json' });
+          response.end('{"amount_tiyn": 9007199254740993}');
+        } else {
+          response.writeHead(409, { 'content-type': 'application/json' });
+          response.end('{"type":"error","error":{"type":"conflict_error","code":"c","message":"m","balance_tiyn":9007199254740993},"request_id":"r"}');
+        }
+      },
+      async (server) => {
+        const client = server.client();
+        const error = await rejection(client.proposals.list('co'));
+        assert.ok(error instanceof DecodeError, String(error));
+        assert.match(error.body, /9007199254740993/);
+        const conflict = await rejection(client.companies.list());
+        assert.ok(conflict instanceof APIError);
+        assert.equal(conflict.extra['balance_tiyn'], 9007199254740993n, 'a 64-bit amount in extra stays exact');
+      },
+    );
+    const turn = chatTurnError(parseJSON('{"type":"x","detail":"d","n":9007199254740993}'), 'r');
+    assert.ok(turn instanceof APIError);
+    assert.match(turn.body, /9007199254740993/);
   });
 
   it('iterates every item of every page lazily', async () => {

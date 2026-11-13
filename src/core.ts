@@ -235,6 +235,20 @@ export function readEnv(name: string): string | undefined {
 }
 
 /** A random RFC 4122 version 4 UUID from the platform CSPRNG. */
+/**
+ * The `idempotency_key` field of a JSON object body (approving a proposal documents it as the same
+ * as the header), trimmed like the API trims it. The API prefers the header over the field, so a
+ * generated header would make the caller's own key useless. A key that cannot travel in a header
+ * (outside printable ASCII) is ignored here.
+ */
+function bodyIdempotencyKey(body: unknown): string | undefined {
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) return undefined;
+  const value: unknown = (body as Record<string, unknown>)['idempotency_key'];
+  if (typeof value !== 'string') return undefined;
+  const key = value.trim();
+  return key !== '' && /^[\x20-\x7e]+$/.test(key) ? key : undefined;
+}
+
 export function uuid4(): string {
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
@@ -671,7 +685,8 @@ export class APIClient {
     if (options.idempotencyKey !== undefined) {
       bag.set(headerName, options.idempotencyKey);
     } else if (!bag.has(headerName)) {
-      bag.set(headerName, spec.defaultIdempotencyKey !== undefined && spec.defaultIdempotencyKey !== '' ? spec.defaultIdempotencyKey : uuid4());
+      const fallback = spec.defaultIdempotencyKey !== undefined && spec.defaultIdempotencyKey !== '' ? spec.defaultIdempotencyKey : bodyIdempotencyKey(spec.body);
+      bag.set(headerName, fallback ?? uuid4());
     }
     return { headers: bag.toRecord(), hasIdempotencyKey: bag.has(headerName) };
   }

@@ -111,3 +111,18 @@ export function stringifyJSON(value: unknown): string {
   if (!big) return text;
   return text.replace(new RegExp('"\\\\u0000' + prefix + '(-?[0-9]+)"', 'g'), '$1');
 }
+
+/**
+ * The JSON text of a decoded value for an error message or the `body` of an error: like
+ * stringifyJSON (a bigint keeps every digit), but it never throws: `undefined` and a value JSON
+ * cannot express give ''.
+ */
+export function debugJSON(value: unknown): string {
+  if (value === undefined) return '';
+  try {
+    return stringifyJSON(value);
+  } catch {
+    // NaN or Infinity inside, a cycle: the error is still raised, only without its body.
+    return '';
+  }
+}

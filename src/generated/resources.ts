@@ -1176,7 +1176,8 @@ export class AutomationsResource {
    * Принять событие по адресу хука
    *
    * The body is sent as it is (text or bytes) or serialised as JSON. With `options.secret` the exact bytes
-   * are signed in the `X-Signature: sha256=<hex>` header. The API key is never sent to this endpoint.
+   * are signed in the `X-Signature: sha256=<hex>` header, or in `options.signatureHeader` for a hook created with
+   * its own `signature_header`. The API key is never sent to this endpoint.
    *
    * `POST /hooks/{token}`
    */

@@ -18,6 +18,7 @@ import {
   TungoKazakhstan,
   TungoMoney,
   TungoWebhooks,
+  ValidationError,
   WebhookVerificationError,
   signHookPayload,
   verifyHookSignature,
@@ -101,6 +102,31 @@ describe('incoming hooks', () => {
         assert.equal(a.headers['content-type'], 'application/json');
         assert.equal(a.headers['x-api-key'], undefined);
         assert.equal(a.headers.authorization, undefined);
+      },
+    );
+  });
+
+  it('a hook created with its own signature_header is signed in that header', async () => {
+    // The server reads the signature only from the hook's signature_header: X-Signature would be a 401.
+    await withServer(
+      (_request, response) => {
+        sendJSON(response, 202, { accepted: true });
+      },
+      async (server) => {
+        const client = server.client();
+        await client.sendHook('tok', { n: 1 }, { secret: 'hook-secret', signatureHeader: 'x-shop-signature' });
+        await client.automations.postHook('tok', { n: 2 }, { secret: 'hook-secret' });
+        const [a, b] = server.requests;
+        assert.ok(a !== undefined && b !== undefined);
+        assert.equal(a.headers['x-shop-signature'], 'sha256=' + (await signHookPayload(a.body, 'hook-secret')));
+        assert.equal(a.headers['x-signature'], undefined);
+        assert.equal(b.headers['x-signature'], 'sha256=' + (await signHookPayload(b.body, 'hook-secret')));
+        await assert.rejects(
+          client.sendHook('tok', { n: 3 }, { secret: 'hook-secret', signatureHeader: 'x-shop-signature', headers: { 'X-Shop-Signature': 'sha256=00' } }),
+          ValidationError,
+        );
+        await assert.rejects(client.sendHook('tok', { n: 4 }, { secret: 'hook-secret', signatureHeader: 'bad header' }), ValidationError);
+        assert.equal(server.requests.length, 2);
       },
     );
   });

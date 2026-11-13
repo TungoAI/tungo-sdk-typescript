@@ -231,6 +231,8 @@ export function encodeHookPayload(payload: HookPayload): { bytes: Uint8Array; co
   return { bytes: encoder.encode(stringifyJSON(payload)), contentType: 'application/json' };
 }
 
+const HOOK_SIGNATURE_HEADER = /^[A-Za-z0-9-]{1,64}$/;
+
 /** The contract details of the incoming-hook operation; supplied by the generated resource. */
 export interface HookOperation {
   method: string;
@@ -245,6 +247,11 @@ export interface HookOperation {
 export interface SendHookOptions extends RequestOptions {
   /** The hook's signing secret. When given, the exact bytes sent are signed in the signature header. */
   secret?: string | undefined;
+  /**
+   * The header the hook reads its signature from: the `signature_header` it was created with.
+   * Default `X-Signature`.
+   */
+  signatureHeader?: string | undefined;
   /** Your id of the event, for de-duplication on the server. */
   eventId?: string | undefined;
   /** Content type of the body. Default: `application/json` for text and JSON values, `application/octet-stream` for bytes. */
@@ -254,10 +261,20 @@ export interface SendHookOptions extends RequestOptions {
 /** Posts an event to an incoming hook. No API key is sent: the token in the path authenticates. */
 export function sendHook<R>(client: APIClient, operation: HookOperation, token: string, payload: HookPayload, options: SendHookOptions = {}): APIPromise<R> {
   const run = async (): Promise<RequestSpec> => {
-    const { secret, eventId, contentType, ...requestOptions } = options;
+    const { secret, eventId, contentType, signatureHeader, ...requestOptions } = options;
+    const target = signatureHeader ?? operation.signatureHeader;
+    if (typeof target !== 'string' || !HOOK_SIGNATURE_HEADER.test(target)) {
+      throw new ValidationError("signatureHeader must be 1 to 64 Latin letters, digits or hyphens, like the hook's signature_header.");
+    }
     const encoded = encodeHookPayload(payload);
     const headers: Record<string, string | undefined> = {};
-    if (secret !== undefined) headers[operation.signatureHeader] = 'sha256=' + (await signHookPayload(encoded.bytes, secret));
+    if (secret !== undefined) {
+      const lower = target.toLowerCase();
+      if (Object.entries(requestOptions.headers ?? {}).some(([name, value]) => name.toLowerCase() === lower && value != null)) {
+        throw new ValidationError(`Pass either secret or the ${target} header, not both.`);
+      }
+      headers[target] = 'sha256=' + (await signHookPayload(encoded.bytes, secret));
+    }
     if (eventId !== undefined && operation.eventIdHeader !== undefined) headers[operation.eventIdHeader] = eventId;
     return {
       method: operation.method,
