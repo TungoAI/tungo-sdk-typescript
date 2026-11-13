@@ -164,7 +164,7 @@ function isObject(value: unknown): value is JSONObject {
 
 /**
  * Turns a replayed ChatTurnResult into the event stream of the turn it stands for: text (the
- * answer), proposal, question, citation, error and choice events, then done. The dialog id and
+ * answer), proposal, question, citation, error, choice and next events, then done. The dialog id and
  * the turn number, which a replay carries only in the body, become the X-Dialog-Id and X-Turn-No
  * headers when they are missing: `headers` are those of the response with them, the other headers
  * (Idempotent-Replayed among them) unchanged. Returns null when the body is not a chat turn result.
@@ -212,6 +212,11 @@ function replayAsEventStream(response: Response, text: string, requestId: string
     emit('choice', pending);
     done['choice_id'] = pending['choice_id'];
   }
+  // A live turn ends its finished answer with next right before done; the stored result keeps it
+  // as followups and next_action.
+  const followups = Array.isArray(result['followups']) ? result['followups'] : [];
+  const action = result['next_action'];
+  if (followups.length > 0 || isObject(action)) emit('next', { followups, action: isObject(action) ? action : null });
   emit('done', done);
   const streamHeaders = new Headers(headers);
   streamHeaders.set('content-type', 'text/event-stream');

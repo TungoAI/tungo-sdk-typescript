@@ -316,12 +316,15 @@ describe('conformance vectors', () => {
           assert.equal(stream.turnNo, c.expect.turn_no, c.name);
           const types: string[] = [];
           const fold = new ChatAccumulator();
+          let next: { followups: string[]; action: unknown } | undefined;
           for await (const event of stream) {
             types.push(event.type);
             fold.push(event);
+            if (event.type === 'next') next = { followups: event.followups, action: event.action };
           }
           assert.equal(types.length, c.expect.event_count, c.name);
           if (c.expect.event_types !== undefined) assert.deepEqual(types, c.expect.event_types, c.name);
+          if (c.expect.next !== undefined) assert.deepEqual(next, c.expect.next, c.name);
 
           // The accumulating helper returns the turn, or throws the typed error.
           const outcome = await client.streamChatWithResult('co_1', 'q').then(

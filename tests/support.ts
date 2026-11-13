@@ -219,6 +219,8 @@ export interface Vectors {
       event_count: number;
       event_types?: string[];
       error: WireError | null;
+      /** The followups and action of the `next` event the stream must yield. */
+      next?: { followups: string[]; action: Record<string, unknown> | null };
     };
   }>;
   chat_stream_replay: Array<{
