@@ -234,7 +234,6 @@ export function readEnv(name: string): string | undefined {
   return undefined;
 }
 
-/** A random RFC 4122 version 4 UUID from the platform CSPRNG. */
 /**
  * The `idempotency_key` field of a JSON object body (approving a proposal documents it as the same
  * as the header), trimmed like the API trims it. The API prefers the header over the field, so a
@@ -249,6 +248,7 @@ function bodyIdempotencyKey(body: unknown): string | undefined {
   return key !== '' && /^[\x20-\x7e]+$/.test(key) ? key : undefined;
 }
 
+/** A random RFC 4122 version 4 UUID from the platform CSPRNG. */
 export function uuid4(): string {
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
