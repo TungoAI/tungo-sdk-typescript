@@ -65,6 +65,10 @@ export class Tungo {
   readonly onec: R.OnecResource;
   /** Автоматизации компании: входящие хуки, сценарии, цепочки шагов, запуски и уровень автономности ИИ */
   readonly automations: R.AutomationsResource;
+  /** Публичная проверка электронной подписи документов Tungo: по коду, по файлу, по блоку QR и ключи подписи (без ключа API) */
+  readonly verification: R.VerificationResource;
+  /** Публичный список загрузок: расширение 1С и Tungo Connector (без ключа API) */
+  readonly releases: R.ReleasesResource;
   readonly #client: APIClient;
 
   constructor(options: ClientOptions = {}) {
@@ -83,6 +87,8 @@ export class Tungo {
     this.forms = new R.FormsResource(client);
     this.onec = new R.OnecResource(client);
     this.automations = new R.AutomationsResource(client);
+    this.verification = new R.VerificationResource(client);
+    this.releases = new R.ReleasesResource(client);
   }
 
   /** Base URL the client talks to. */

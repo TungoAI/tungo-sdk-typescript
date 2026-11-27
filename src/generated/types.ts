@@ -56,151 +56,6 @@ export interface ApiKey {
   write_max_amount_per_document_tiyn: number | bigint | null;
 }
 
-/** Новый ключ API. */
-export interface ApiKeyCreate {
-  /** Ключ на все компании организации, в том числе будущие: список company_ids не передаётся. Ключ видит те компании, где его создатель состоит сейчас, и в каждой — не шире его текущей роли. По умолчанию false */
-  all_companies?: boolean;
-  /** С каких адресов ключ работает: IP или подсети CIDR (до 100), IPv4 и IPv6. С другого адреса — 403, error.code ip_not_allowed. null — с любых */
-  allowed_ips?: string[] | null;
-  /** Компании, к которым ключ даёт доступ (co_…), от 1 до 200; все — из этой организации, и в каждой у создателя должны быть выдаваемые права. Для webhooks.manage — обязательно все компании организации. Обязательно, если не a… */
-  company_ids?: string[];
-  /** Когда ключ перестанет действовать, ISO 8601; только в будущем и не дальше настройки платформы (по умолчанию 365 дней). null или нет — через срок по умолчанию (90 дней) */
-  expires_at?: string | null;
-  /** Месячный потолок расхода ИИ по ключу в тиынах (1 ₸ = 100 тиын), календарный месяц по Алматы; дойдя до него, вызовы ИИ по ключу отклоняются до 1-го числа. null — без потолка ключа */
-  monthly_cap_tiyn?: number | bigint | null;
-  /** Название ключа для людей (1–100 знаков): где он используется */
-  name: string;
-  /** Ключ без доступа к компаниям и их 1С: ни одной компании он не видит — ни сейчас, ни будущих; company_ids и all_companies не передаются, права — только company.read (он ничего не открывает). По умолчанию false */
-  no_companies?: boolean;
-  /** Права ключа (1–20): `company.read` — читать данные компаний (добавляется всегда, даже если не передано); `chat.use` — работать с ИИ-бухгалтером; `proposals.create` — готовить документы для 1С; `proposals.approve` — одобр… */
-  permissions?: string[];
-  /** Предел записи в 1С по ключу: какие виды документов ключ может одобрять (как kinds правила автоодобрения: sale, purchase, bank_receipt, bank_payment, counterparty, contract, inventory_writeoff, cash_order_in, cash_order_o… */
-  write_kinds?: ApiKeyCreateWriteKindItem[] | null;
-  /** Предел записи в 1С по ключу: сумма всех документов, одобренных ключом за день по Алматы, в тиынах. Документ с неизвестным исходом записи (1С не ответила) тоже считается. null — без предела. При изменении: не передан — не… */
-  write_max_amount_per_day_tiyn?: number | bigint | null;
-  /** Предел записи в 1С по ключу: потолок суммы одного документа, который ключ одобряет (approve, approve-batch), в тиынах (1 ₸ = 100 тиын). Документ дороже или без известной суммы ключ не запишет (403, error.code key_write_l… */
-  write_max_amount_per_document_tiyn?: number | bigint | null;
-}
-
-export type ApiKeyCreateWriteKindItem = 'sale' | 'purchase' | 'bank_receipt' | 'bank_payment' | 'counterparty' | 'contract' | 'inventory_writeoff' | 'cash_order_in' | 'cash_order_out' | 'advance_report' | 'revert';
-
-/** Выпущенный ключ — с секретом один раз. */
-export interface ApiKeyCreated {
-  /** Ключ на все компании организации, в том числе будущие: те, где создатель ключа состоит сейчас, и в каждой — не шире его текущей роли */
-  all_companies: boolean;
-  /** С каких IP и подсетей CIDR ключ работает; с другого адреса — 403 ip_not_allowed. null — с любых */
-  allowed_ips: string[] | null;
-  /** Компании, к которым ключ даёт доступ (co_…); пусто у ключа на все компании (all_companies) и у ключа без компаний (no_companies) */
-  company_ids: string[];
-  /** Когда выпущен, ISO 8601 UTC */
-  created_at: string;
-  /** Кто выпустил (usr_…). Ключ действует от его имени и не шире его прав: создатель перестал быть владельцем или админом — ключ не работает */
-  created_by: string;
-  /** Когда выключен, ISO 8601 UTC; null — не выключен */
-  disabled_at: string | null;
-  /** Когда ключ перестаёт действовать, ISO 8601 UTC (срок есть у каждого ключа) */
-  expires_at: string;
-  /** id ключа (key_…) — для адресов …/api-keys/{id} */
-  id: string;
-  /** Ключ целиком (tg_…) — только в этом ответе: показать один раз с кнопкой «Скопировать» и предупреждением, что больше его не увидеть. В повторе по Idempotency-Key — null */
-  key: string | null;
-  /** Только в повторе по Idempotency-Key: почему key = null и что делать, если ключ потерян (отозвать и выпустить новый) */
-  key_note?: string;
-  /** Когда ключом пользовались последний раз, ISO 8601 UTC (точность — около минуты); null — ещё ни разу */
-  last_used_at: string | null;
-  /** С какого IP-адреса был последний запрос; null — ещё ни разу */
-  last_used_ip: string | null;
-  /** Месячный потолок расхода ИИ по ключу в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸), календарный месяц по Алматы; null — без потолка ключа */
-  monthly_cap_tiyn: number | bigint | null;
-  /** Название ключа для людей */
-  name: string;
-  /** Ключ без доступа к компаниям и их 1С: company_ids пуст, all_companies = false; компаний не видит никогда. Пустой company_ids сам по себе вида не называет — смотреть на all_companies и no_companies */
-  no_companies: boolean;
-  /** Права ключа: `company.read` — читать данные компаний (есть всегда); `chat.use` — работать с ИИ-бухгалтером; `proposals.create` — готовить документы для 1С; `proposals.approve` — одобрять запись в 1С; `automations.read` —… */
-  permissions: ApiKeyCreatedPermissionItem[];
-  /** Открытая часть ключа для показа — узнать ключ среди других; сам ключ (tg_…_секрет) целиком не хранится */
-  prefix: string;
-  /** После смены секрета (roll): до какого времени ещё действует прежний, ISO 8601 UTC; null — прежнего нет */
-  previous_secret_valid_until: string | null;
-  /** Когда отозван, ISO 8601 UTC; null — не отозван */
-  revoked_at: string | null;
-  /** Состояние: `active` — действует; `disabled` — выключен (disabled_at), не работает, можно включить; `expired` — истёк срок (expires_at), не работает; `revoked` — отозван (revoked_at), не работает. Неактивные показывать се… */
-  status: ApiKeyCreatedStatus;
-  /** Ключ сохранён, но вызовы ИИ по нему сейчас не пройдут или он пишет в 1С без пределов: баланс платформы пуст (402 platform_balance_exhausted), подключение компании не оплачено (402 onboarding_unpaid), потолок ключа меньше… */
-  warnings: ApiKeyWarning[];
-  /** Организация ключа (ws_…) */
-  workspace_id: string;
-  /** Предел записи в 1С по ключу: какие виды документов ключ может одобрять (как kinds правила автоодобрения: sale, purchase, bank_receipt, bank_payment, counterparty, contract, inventory_writeoff, cash_order_in, cash_order_o… */
-  write_kinds: string[] | null;
-  /** Предел записи в 1С по ключу: сумма всех документов, одобренных ключом за день по Алматы, в тиынах. Документ с неизвестным исходом записи (1С не ответила) тоже считается. null — без предела */
-  write_max_amount_per_day_tiyn: number | bigint | null;
-  /** Предел записи в 1С по ключу: потолок суммы одного документа, который ключ одобряет (approve, approve-batch), в тиынах (1 ₸ = 100 тиын). Документ дороже или без известной суммы ключ не запишет (403, error.code key_write_l… */
-  write_max_amount_per_document_tiyn: number | bigint | null;
-}
-
-export type ApiKeyCreatedPermissionItem = 'company.read' | 'chat.use' | 'proposals.create' | 'proposals.approve' | 'automations.manage' | 'automations.read' | 'webhooks.manage';
-
-/** Состояние: `active` — действует; `disabled` — выключен (disabled_at), не работает, можно включить; `expired` — истёк срок (expires_at), не работает; `revoked` — отозван (revoked_at), не работает. Неактивные показывать се… */
-export type ApiKeyCreatedStatus = 'active' | 'disabled' | 'expired' | 'revoked';
-
-/** Ключ и причина, по которой он сейчас не сработает. */
-export interface ApiKeyDetails {
-  /** Ключ на все компании организации, в том числе будущие: те, где создатель ключа состоит сейчас, и в каждой — не шире его текущей роли */
-  all_companies: boolean;
-  /** С каких IP и подсетей CIDR ключ работает; с другого адреса — 403 ip_not_allowed. null — с любых */
-  allowed_ips: string[] | null;
-  /** Почему ключ сейчас не сработает — тот же код, что вернул бы отказ; null — всё хорошо. Вызов ИИ оценивается средней ценой, настоящая цена может быть выше. Ограничение по адресу (allowed_ips) здесь не проверяется: оно своё… */
-  blocked_reason: ApiKeyDetailsBlockedReason | null;
-  /** Компании, к которым ключ даёт доступ (co_…); пусто у ключа на все компании (all_companies) и у ключа без компаний (no_companies) */
-  company_ids: string[];
-  /** Когда выпущен, ISO 8601 UTC */
-  created_at: string;
-  /** Кто выпустил (usr_…). Ключ действует от его имени и не шире его прав: создатель перестал быть владельцем или админом — ключ не работает */
-  created_by: string;
-  /** Когда выключен, ISO 8601 UTC; null — не выключен */
-  disabled_at: string | null;
-  /** Когда ключ перестаёт действовать, ISO 8601 UTC (срок есть у каждого ключа) */
-  expires_at: string;
-  /** id ключа (key_…) — для адресов …/api-keys/{id} */
-  id: string;
-  /** Когда ключом пользовались последний раз, ISO 8601 UTC (точность — около минуты); null — ещё ни разу */
-  last_used_at: string | null;
-  /** С какого IP-адреса был последний запрос; null — ещё ни разу */
-  last_used_ip: string | null;
-  /** Месячный потолок расхода ИИ по ключу в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸), календарный месяц по Алматы; null — без потолка ключа */
-  monthly_cap_tiyn: number | bigint | null;
-  /** Название ключа для людей */
-  name: string;
-  /** Ключ без доступа к компаниям и их 1С: company_ids пуст, all_companies = false; компаний не видит никогда. Пустой company_ids сам по себе вида не называет — смотреть на all_companies и no_companies */
-  no_companies: boolean;
-  /** Права ключа: `company.read` — читать данные компаний (есть всегда); `chat.use` — работать с ИИ-бухгалтером; `proposals.create` — готовить документы для 1С; `proposals.approve` — одобрять запись в 1С; `automations.read` —… */
-  permissions: ApiKeyDetailsPermissionItem[];
-  /** Открытая часть ключа для показа — узнать ключ среди других; сам ключ (tg_…_секрет) целиком не хранится */
-  prefix: string;
-  /** После смены секрета (roll): до какого времени ещё действует прежний, ISO 8601 UTC; null — прежнего нет */
-  previous_secret_valid_until: string | null;
-  /** Когда отозван, ISO 8601 UTC; null — не отозван */
-  revoked_at: string | null;
-  /** Состояние: `active` — действует; `disabled` — выключен (disabled_at), не работает, можно включить; `expired` — истёк срок (expires_at), не работает; `revoked` — отозван (revoked_at), не работает. Неактивные показывать се… */
-  status: ApiKeyDetailsStatus;
-  /** Организация ключа (ws_…) */
-  workspace_id: string;
-  /** Предел записи в 1С по ключу: какие виды документов ключ может одобрять (как kinds правила автоодобрения: sale, purchase, bank_receipt, bank_payment, counterparty, contract, inventory_writeoff, cash_order_in, cash_order_o… */
-  write_kinds: string[] | null;
-  /** Предел записи в 1С по ключу: сумма всех документов, одобренных ключом за день по Алматы, в тиынах. Документ с неизвестным исходом записи (1С не ответила) тоже считается. null — без предела */
-  write_max_amount_per_day_tiyn: number | bigint | null;
-  /** Предел записи в 1С по ключу: потолок суммы одного документа, который ключ одобряет (approve, approve-batch), в тиынах (1 ₸ = 100 тиын). Документ дороже или без известной суммы ключ не запишет (403, error.code key_write_l… */
-  write_max_amount_per_document_tiyn: number | bigint | null;
-}
-
-/** Почему ключ сейчас не сработает — тот же код, что вернул бы отказ; null — всё хорошо. Вызов ИИ оценивается средней ценой, настоящая цена может быть выше. Ограничение по адресу (allowed_ips) здесь не проверяется: оно своё… */
-export type ApiKeyDetailsBlockedReason = 'key_revoked' | 'key_expired' | 'key_disabled' | 'key_creator_lost_access' | 'api_keys_disabled_by_policy' | 'workspace_blocked' | 'key_cap_reached' | 'platform_balance_exhausted' | 'platform_cap_reached' | 'platform_disabled';
-
-export type ApiKeyDetailsPermissionItem = 'company.read' | 'chat.use' | 'proposals.create' | 'proposals.approve' | 'automations.manage' | 'automations.read' | 'webhooks.manage';
-
-/** Состояние: `active` — действует; `disabled` — выключен (disabled_at), не работает, можно включить; `expired` — истёк срок (expires_at), не работает; `revoked` — отозван (revoked_at), не работает. Неактивные показывать се… */
-export type ApiKeyDetailsStatus = 'active' | 'disabled' | 'expired' | 'revoked';
-
 /** Расход ключа за текущий месяц и его потолок — для полосы «потрачено из». */
 export interface ApiKeyMonth {
   /** Месячный потолок ключа в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸); null — без потолка */
@@ -211,110 +66,7 @@ export interface ApiKeyMonth {
   spent_tiyn: number | bigint;
 }
 
-/** Изменение ключа: меняются только переданные поля (хотя бы одно). */
-export interface ApiKeyPatch {
-  /** Ключ на все компании организации, в том числе будущие: список company_ids не передаётся. Ключ видит те компании, где его создатель состоит сейчас, и в каждой — не шире его текущей роли. false у ключа на все компании — то… */
-  all_companies?: boolean;
-  /** С каких адресов ключ работает: IP или подсети CIDR (до 100), IPv4 и IPv6. С другого адреса — 403, error.code ip_not_allowed. null — с любых. Заменяет список целиком; не передан — не меняется. Снять список или добавить ад… */
-  allowed_ips?: string[] | null;
-  /** Компании, к которым ключ даёт доступ (co_…), от 1 до 200; все — из этой организации, и в каждой у создателя должны быть выдаваемые права. Для webhooks.manage — обязательно все компании организации. Заменяет список целико… */
-  company_ids?: string[];
-  /** Новый срок ключа, ISO 8601: продлить или сократить; в будущем и не дальше настройки платформы от сегодня (по умолчанию 365 дней). Только создатель ключа (403 not_key_creator). У отозванного — 409 key_revoked, у истёкшего… */
-  expires_at?: string | null;
-  /** Месячный потолок расхода ИИ по ключу в тиынах (1 ₸ = 100 тиын), календарный месяц по Алматы; дойдя до него, вызовы ИИ по ключу отклоняются до 1-го числа. null — без потолка ключа. Не передан — не меняется */
-  monthly_cap_tiyn?: number | bigint | null;
-  /** Название ключа для людей (1–100 знаков): где он используется */
-  name?: string;
-  /** Ключ без доступа к компаниям и их 1С: ни одной компании он не видит — ни сейчас, ни будущих; company_ids и all_companies не передаются, права — только company.read (он ничего не открывает). true — ключ теряет доступ ко в… */
-  no_companies?: boolean;
-  /** Права ключа (1–20): `company.read` — читать данные компаний (добавляется всегда, даже если не передано); `chat.use` — работать с ИИ-бухгалтером; `proposals.create` — готовить документы для 1С; `proposals.approve` — одобр… */
-  permissions?: string[];
-  /** Предел записи в 1С по ключу: какие виды документов ключ может одобрять (как kinds правила автоодобрения: sale, purchase, bank_receipt, bank_payment, counterparty, contract, inventory_writeoff, cash_order_in, cash_order_o… */
-  write_kinds?: ApiKeyPatchWriteKindItem[] | null;
-  /** Предел записи в 1С по ключу: сумма всех документов, одобренных ключом за день по Алматы, в тиынах. Документ с неизвестным исходом записи (1С не ответила) тоже считается. null — без предела. При изменении: не передан — не… */
-  write_max_amount_per_day_tiyn?: number | bigint | null;
-  /** Предел записи в 1С по ключу: потолок суммы одного документа, который ключ одобряет (approve, approve-batch), в тиынах (1 ₸ = 100 тиын). Документ дороже или без известной суммы ключ не запишет (403, error.code key_write_l… */
-  write_max_amount_per_document_tiyn?: number | bigint | null;
-}
-
-export type ApiKeyPatchWriteKindItem = 'sale' | 'purchase' | 'bank_receipt' | 'bank_payment' | 'counterparty' | 'contract' | 'inventory_writeoff' | 'cash_order_in' | 'cash_order_out' | 'advance_report' | 'revert';
-
 export type ApiKeyPermissionItem = 'company.read' | 'chat.use' | 'proposals.create' | 'proposals.approve' | 'automations.manage' | 'automations.read' | 'webhooks.manage';
-
-/** Владелец или админ организации. */
-export interface ApiKeyPerson {
-  /** Почта */
-  email: string;
-  /** Имя */
-  name: string;
-  /** Человек (usr_…) */
-  user_id: string;
-}
-
-/** Срок ключа после смены. */
-export interface ApiKeyRoll {
-  /** Срок ключа после смены, ISO 8601; в будущем и не дальше настройки платформы. null или нет — срок по умолчанию (90 дней) от сейчас */
-  expires_at?: string | null;
-}
-
-/** Ключ с новым секретом — секрет один раз. */
-export interface ApiKeyRolled {
-  /** Ключ на все компании организации, в том числе будущие: те, где создатель ключа состоит сейчас, и в каждой — не шире его текущей роли */
-  all_companies: boolean;
-  /** С каких IP и подсетей CIDR ключ работает; с другого адреса — 403 ip_not_allowed. null — с любых */
-  allowed_ips: string[] | null;
-  /** Компании, к которым ключ даёт доступ (co_…); пусто у ключа на все компании (all_companies) и у ключа без компаний (no_companies) */
-  company_ids: string[];
-  /** Когда выпущен, ISO 8601 UTC */
-  created_at: string;
-  /** Кто выпустил (usr_…). Ключ действует от его имени и не шире его прав: создатель перестал быть владельцем или админом — ключ не работает */
-  created_by: string;
-  /** Когда выключен, ISO 8601 UTC; null — не выключен */
-  disabled_at: string | null;
-  /** Когда ключ перестаёт действовать, ISO 8601 UTC (срок есть у каждого ключа) */
-  expires_at: string;
-  /** id ключа (key_…) — для адресов …/api-keys/{id} */
-  id: string;
-  /** Новый ключ целиком (tg_…) — один раз: показать с кнопкой «Скопировать». В повторе по Idempotency-Key — null */
-  key: string | null;
-  /** Только в повторе по Idempotency-Key: почему key = null и что делать, если новый секрет потерян (сменить ещё раз) */
-  key_note?: string;
-  /** Когда ключом пользовались последний раз, ISO 8601 UTC (точность — около минуты); null — ещё ни разу */
-  last_used_at: string | null;
-  /** С какого IP-адреса был последний запрос; null — ещё ни разу */
-  last_used_ip: string | null;
-  /** Месячный потолок расхода ИИ по ключу в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸), календарный месяц по Алматы; null — без потолка ключа */
-  monthly_cap_tiyn: number | bigint | null;
-  /** Название ключа для людей */
-  name: string;
-  /** Ключ без доступа к компаниям и их 1С: company_ids пуст, all_companies = false; компаний не видит никогда. Пустой company_ids сам по себе вида не называет — смотреть на all_companies и no_companies */
-  no_companies: boolean;
-  /** Права ключа: `company.read` — читать данные компаний (есть всегда); `chat.use` — работать с ИИ-бухгалтером; `proposals.create` — готовить документы для 1С; `proposals.approve` — одобрять запись в 1С; `automations.read` —… */
-  permissions: ApiKeyRolledPermissionItem[];
-  /** Открытая часть ключа для показа — узнать ключ среди других; сам ключ (tg_…_секрет) целиком не хранится */
-  prefix: string;
-  /** После смены секрета (roll): до какого времени ещё действует прежний, ISO 8601 UTC; null — прежнего нет */
-  previous_secret_valid_until: string | null;
-  /** До какого времени ещё принимается прежний секрет, ISO 8601 UTC: сейчас + отсрочка платформы, но не позже прежнего срока ключа (при нулевой отсрочке — момент смены). null — ключ был истёкшим, прежний секрет не действует */
-  previous_valid_until: string | null;
-  /** Когда отозван, ISO 8601 UTC; null — не отозван */
-  revoked_at: string | null;
-  /** Состояние: `active` — действует; `disabled` — выключен (disabled_at), не работает, можно включить; `expired` — истёк срок (expires_at), не работает; `revoked` — отозван (revoked_at), не работает. Неактивные показывать се… */
-  status: ApiKeyRolledStatus;
-  /** Организация ключа (ws_…) */
-  workspace_id: string;
-  /** Предел записи в 1С по ключу: какие виды документов ключ может одобрять (как kinds правила автоодобрения: sale, purchase, bank_receipt, bank_payment, counterparty, contract, inventory_writeoff, cash_order_in, cash_order_o… */
-  write_kinds: string[] | null;
-  /** Предел записи в 1С по ключу: сумма всех документов, одобренных ключом за день по Алматы, в тиынах. Документ с неизвестным исходом записи (1С не ответила) тоже считается. null — без предела */
-  write_max_amount_per_day_tiyn: number | bigint | null;
-  /** Предел записи в 1С по ключу: потолок суммы одного документа, который ключ одобряет (approve, approve-batch), в тиынах (1 ₸ = 100 тиын). Документ дороже или без известной суммы ключ не запишет (403, error.code key_write_l… */
-  write_max_amount_per_document_tiyn: number | bigint | null;
-}
-
-export type ApiKeyRolledPermissionItem = 'company.read' | 'chat.use' | 'proposals.create' | 'proposals.approve' | 'automations.manage' | 'automations.read' | 'webhooks.manage';
-
-/** Состояние: `active` — действует; `disabled` — выключен (disabled_at), не работает, можно включить; `expired` — истёк срок (expires_at), не работает; `revoked` — отозван (revoked_at), не работает. Неактивные показывать се… */
-export type ApiKeyRolledStatus = 'active' | 'disabled' | 'expired' | 'revoked';
 
 /** Ключ, по которому пришёл запрос: права, организация, расход за месяц, частота. */
 export interface ApiKeySelf {
@@ -405,67 +157,6 @@ export type ApiKeySelfWorkspaceKind = 'personal' | 'team' | 'enterprise';
 /** Состояние: `active` — действует; `disabled` — выключен (disabled_at), не работает, можно включить; `expired` — истёк срок (expires_at), не работает; `revoked` — отозван (revoked_at), не работает. Неактивные показывать се… */
 export type ApiKeyStatus = 'active' | 'disabled' | 'expired' | 'revoked';
 
-/** Кому передать ключ. */
-export interface ApiKeyTransfer {
-  /** Кому передать (usr_…): владелец или админ этой организации, чьи права в каждой компании ключа покрывают права ключа */
-  user_id: string;
-}
-
-/** Ключ после изменения и предупреждения об оплате вызовов (если меняли потолок). */
-export interface ApiKeyUpdated {
-  /** Ключ на все компании организации, в том числе будущие: те, где создатель ключа состоит сейчас, и в каждой — не шире его текущей роли */
-  all_companies: boolean;
-  /** С каких IP и подсетей CIDR ключ работает; с другого адреса — 403 ip_not_allowed. null — с любых */
-  allowed_ips: string[] | null;
-  /** Компании, к которым ключ даёт доступ (co_…); пусто у ключа на все компании (all_companies) и у ключа без компаний (no_companies) */
-  company_ids: string[];
-  /** Когда выпущен, ISO 8601 UTC */
-  created_at: string;
-  /** Кто выпустил (usr_…). Ключ действует от его имени и не шире его прав: создатель перестал быть владельцем или админом — ключ не работает */
-  created_by: string;
-  /** Когда выключен, ISO 8601 UTC; null — не выключен */
-  disabled_at: string | null;
-  /** Когда ключ перестаёт действовать, ISO 8601 UTC (срок есть у каждого ключа) */
-  expires_at: string;
-  /** id ключа (key_…) — для адресов …/api-keys/{id} */
-  id: string;
-  /** Когда ключом пользовались последний раз, ISO 8601 UTC (точность — около минуты); null — ещё ни разу */
-  last_used_at: string | null;
-  /** С какого IP-адреса был последний запрос; null — ещё ни разу */
-  last_used_ip: string | null;
-  /** Месячный потолок расхода ИИ по ключу в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸), календарный месяц по Алматы; null — без потолка ключа */
-  monthly_cap_tiyn: number | bigint | null;
-  /** Название ключа для людей */
-  name: string;
-  /** Ключ без доступа к компаниям и их 1С: company_ids пуст, all_companies = false; компаний не видит никогда. Пустой company_ids сам по себе вида не называет — смотреть на all_companies и no_companies */
-  no_companies: boolean;
-  /** Права ключа: `company.read` — читать данные компаний (есть всегда); `chat.use` — работать с ИИ-бухгалтером; `proposals.create` — готовить документы для 1С; `proposals.approve` — одобрять запись в 1С; `automations.read` —… */
-  permissions: ApiKeyUpdatedPermissionItem[];
-  /** Открытая часть ключа для показа — узнать ключ среди других; сам ключ (tg_…_секрет) целиком не хранится */
-  prefix: string;
-  /** После смены секрета (roll): до какого времени ещё действует прежний, ISO 8601 UTC; null — прежнего нет */
-  previous_secret_valid_until: string | null;
-  /** Когда отозван, ISO 8601 UTC; null — не отозван */
-  revoked_at: string | null;
-  /** Состояние: `active` — действует; `disabled` — выключен (disabled_at), не работает, можно включить; `expired` — истёк срок (expires_at), не работает; `revoked` — отозван (revoked_at), не работает. Неактивные показывать се… */
-  status: ApiKeyUpdatedStatus;
-  /** Ключ сохранён, но вызовы ИИ по нему сейчас не пройдут или он пишет в 1С без пределов: баланс платформы пуст (402 platform_balance_exhausted), подключение компании не оплачено (402 onboarding_unpaid), потолок ключа меньше… */
-  warnings: ApiKeyWarning[];
-  /** Организация ключа (ws_…) */
-  workspace_id: string;
-  /** Предел записи в 1С по ключу: какие виды документов ключ может одобрять (как kinds правила автоодобрения: sale, purchase, bank_receipt, bank_payment, counterparty, contract, inventory_writeoff, cash_order_in, cash_order_o… */
-  write_kinds: string[] | null;
-  /** Предел записи в 1С по ключу: сумма всех документов, одобренных ключом за день по Алматы, в тиынах. Документ с неизвестным исходом записи (1С не ответила) тоже считается. null — без предела */
-  write_max_amount_per_day_tiyn: number | bigint | null;
-  /** Предел записи в 1С по ключу: потолок суммы одного документа, который ключ одобряет (approve, approve-batch), в тиынах (1 ₸ = 100 тиын). Документ дороже или без известной суммы ключ не запишет (403, error.code key_write_l… */
-  write_max_amount_per_document_tiyn: number | bigint | null;
-}
-
-export type ApiKeyUpdatedPermissionItem = 'company.read' | 'chat.use' | 'proposals.create' | 'proposals.approve' | 'automations.manage' | 'automations.read' | 'webhooks.manage';
-
-/** Состояние: `active` — действует; `disabled` — выключен (disabled_at), не работает, можно включить; `expired` — истёк срок (expires_at), не работает; `revoked` — отозван (revoked_at), не работает. Неактивные показывать се… */
-export type ApiKeyUpdatedStatus = 'active' | 'disabled' | 'expired' | 'revoked';
-
 /** Расход ключа на ИИ за период: итоги, по дням, моделям и компаниям; суммы — в тиынах. */
 export interface ApiKeyUsage {
   /** По компаниям */
@@ -527,17 +218,6 @@ export interface ApiKeyUsageTotals {
   /** Сколько вызовов ИИ за период */
   requests: number | bigint;
 }
-
-/** Почему вызовы ИИ по ключу сейчас не пройдут. */
-export interface ApiKeyWarning {
-  /** Что мешает: `platform_balance_empty` — баланс платформы пуст; `onboarding_unpaid` — подключение компании ключа не оплачено; `key_cap_below_estimate` — месячный потолок ключа меньше оценки одного вызова ИИ; `write_unlimit… */
-  code: ApiKeyWarningCode;
-  /** Что случилось и что сделать — текст для человека, показать как есть */
-  message: string;
-}
-
-/** Что мешает: `platform_balance_empty` — баланс платформы пуст; `onboarding_unpaid` — подключение компании ключа не оплачено; `key_cap_below_estimate` — месячный потолок ключа меньше оценки одного вызова ИИ; `write_unlimit… */
-export type ApiKeyWarningCode = 'platform_balance_empty' | 'onboarding_unpaid' | 'key_cap_below_estimate' | 'write_unlimited';
 
 /** Одобрить пачку предложений */
 export type ApproveBatchCompanyProposalsResponse = BatchApproveResponse | BatchApproveJob;
@@ -628,7 +308,7 @@ export interface AuditEntry {
 }
 
 /** Код действия вида «объект.действие». Текст для человека собирайте сами на его языке: по этому коду и параметрам из data (ниже — что значит каждый код). Значения: - `company.created` — Компания заведена - `company.updated… */
-export type AuditEntryAction = 'company.created' | 'company.updated' | 'company.archived' | 'company.unarchived' | 'company.member_added' | 'company.member_role_changed' | 'company.member_removed' | 'company.onboarding_waived' | 'company.onboarding_unwaived' | 'company.onec_connected' | 'company.onec_updated' | 'company.onec_copy_uploaded' | 'company.onec_copy_held' | 'company.onec_connector_code_created' | 'company.onec_connector_paired' | 'company.onec_connector_rotated' | 'company.onec_connector_rotate_refused' | 'company.onec_connector_revoked' | 'company.onec_connector_link_approved' | 'connector.link_created' | 'connector.link_denied' | 'company.onec_link_approved' | 'company.onec_link_revoked' | 'onec_link.wrong_match' | 'company.profile_rebuild' | 'workspace.member_joined' | 'workspace.member_role_changed' | 'workspace.member_removed' | 'workspace.member_access_revoked' | 'workspace.invitation_created' | 'workspace.invitation_cancelled' | 'workspace.policies_updated' | 'workspace.scim_token_created' | 'workspace.scim_token_revoked' | 'workspace.scim_user_provisioned' | 'workspace.scim_user_deprovisioned' | 'workspace.scim_user_deleted' | 'workspace.updated' | 'workspace.sso_provider_updated' | 'workspace.sso_provider_deleted' | 'workspace.sso_domain_verification_requested' | 'workspace.sso_domain_verified' | 'workspace.ownership_transferred' | 'workspace.deleted' | 'workspace.created' | 'team.checkout_abandoned' | 'enterprise.request_created' | 'workspace.converted_to_team' | 'workspace.deletion_scheduled' | 'workspace.deletion_cancelled' | 'workspace.invitation_resent' | 'team.seats_purchased' | 'team.seats_reduced' | 'admin.workspace.kind_changed' | 'admin.workspace.contract_seats' | 'admin.plan_grant.created' | 'admin.plan_grant.extended' | 'admin.plan_grant.revoked' | 'admin.plan_grant.ended' | 'admin.platform_discount.created' | 'admin.platform_discount.revoked' | 'admin.subscription.cancelled' | 'admin.subscription.resumed' | 'admin.money.exported' | 'admin.payment_search.pd_viewed' | 'workspace.sso_provider_created' | 'workspace.group_created' | 'workspace.group_updated' | 'workspace.group_deleted' | 'workspace.group_member_added' | 'workspace.group_member_removed' | 'workspace.group_roles_changed' | 'workspace.custom_role_created' | 'workspace.custom_role_updated' | 'workspace.custom_role_deleted' | 'workspace.role_ceiling_updated' | 'workspace.model_policy_updated' | 'workspace.retention_updated' | 'workspace.training_consent' | 'workspace.audit_exported' | 'workspace.compliance_updated' | 'workspace.compliance_read' | 'api_key.created' | 'api_key.updated' | 'api_key.rolled' | 'api_key.revoked' | 'api_key.transferred' | 'api_key.disabled' | 'api_key.enabled' | 'webhook.endpoint_created' | 'webhook.endpoint_updated' | 'webhook.endpoint_deleted' | 'webhook.secret_rotated' | 'webhook.secret_read' | 'webhook.message_resent' | 'company.autonomy.changed' | 'automation.paused' | 'automation.resumed' | 'automation.run.cancel' | 'billing.profile.updated' | 'billing.payment_method.disabled' | 'billing.refund.succeeded' | 'billing.manual_charge' | 'subscription.created' | 'subscription.changed' | 'subscription.cancel_scheduled' | 'subscription.resumed' | 'extra_usage.configured' | 'extra_usage.adjusted' | 'platform.configured' | 'platform.adjusted' | 'extra_usage.member_cap_set' | 'extra_usage.alert_thresholds_set' | 'company.spend_cap_set' | 'team.analytics_exported' | 'team.spend_exported' | 'ai_budget.member_set' | 'ai_budget.member_reset' | 'spend.cap_threshold_reached' | 'spend.company_cap_reached' | 'plan.created' | 'plan.updated' | 'usage_rate.added' | 'user.terms.accepted' | 'account.deletion_code_sent' | 'account.deletion_scheduled' | 'account.deletion_cancelled' | 'account.deleted' | 'langfuse.traces_purged' | 'admin.dialog.langfuse_dataset' | 'admin.dialog.langfuse_annotation' | 'account.email_code_sent' | 'account.email_bound' | 'account.telegram_merged' | 'account.google_linked' | 'account.telegram_merge_refused' | 'admin.ads.conversions_released' | 'admin.ads.conversions_rejected' | 'admin.ads.signups_exported' | 'admin.access.signed_in' | 'admin.access.refused' | 'admin.two_factor.verified' | 'admin.two_factor.enable_requested' | 'admin.two_factor.enabled' | 'admin.two_factor.disabled' | 'admin.session.signed_in' | 'admin.user.banned' | 'admin.user.unbanned' | 'admin.workspace.blocked' | 'admin.workspace.unblocked' | 'admin.workspace.training_consent' | 'admin.user.platform_roles_changed' | 'admin.user.free_eligibility_changed' | 'admin.user.limit_resets_granted' | 'admin.user.limit_resets_revoked' | 'usage.limit_reset_applied' | 'referral.claimed' | 'referral.rewarded' | 'admin.enterprise_request.status_changed' | 'admin.training.exported' | 'admin.setting.changed' | 'admin.logs.purged' | 'admin.dialog.pd_viewed' | 'admin.dialog.rating_comments_viewed' | 'admin.dialog.label_set' | 'admin.dialog.label_removed' | 'admin.journal.pd_viewed' | 'admin.company.pd_viewed' | 'admin.company.pd_searched' | 'admin.payment.pd_viewed' | 'site.post_published' | 'site.post_unpublished' | 'site.post_deleted' | 'site.legal_published' | 'site.trackers_saved' | 'help.section_created' | 'help.section_updated' | 'help.section_deleted' | 'help.article_created' | 'help.article_updated' | 'help.article_deleted' | 'help.reordered' | 'support.ticket_created' | 'admin.support.replied' | 'admin.support.note_added' | 'admin.support.ticket_updated' | 'admin.support.attachment_viewed' | 'canary.triggered' | 'billing.payment.new' | 'billing.payment.pending' | 'billing.payment.requires_action' | 'billing.payment.authorized' | 'billing.payment.succeeded' | 'billing.payment.verified' | 'billing.payment.failed' | 'billing.payment.cancelled' | 'billing.payment.partially_refunded' | 'billing.payment.refunded';
+export type AuditEntryAction = 'company.created' | 'company.updated' | 'company.archived' | 'company.unarchived' | 'company.member_added' | 'company.member_role_changed' | 'company.member_removed' | 'company.onboarding_waived' | 'company.onboarding_unwaived' | 'company.onec_connected' | 'company.onec_updated' | 'company.onec_copy_uploaded' | 'company.onec_copy_held' | 'company.onec_connector_code_created' | 'company.onec_connector_paired' | 'company.onec_connector_rotated' | 'company.onec_connector_rotate_refused' | 'company.onec_connector_revoked' | 'company.onec_connector_unpaired' | 'company.onec_connector_replaced' | 'company.onec_connector_link_approved' | 'connector.link_created' | 'connector.link_denied' | 'company.onec_link_approved' | 'company.onec_link_revoked' | 'onec_link.wrong_match' | 'onec_link.limit_refused' | 'company.profile_rebuild' | 'workspace.member_joined' | 'workspace.member_role_changed' | 'workspace.member_removed' | 'workspace.member_access_revoked' | 'workspace.invitation_created' | 'workspace.invitation_cancelled' | 'workspace.policies_updated' | 'workspace.scim_token_created' | 'workspace.scim_token_revoked' | 'workspace.scim_user_provisioned' | 'workspace.scim_user_deprovisioned' | 'workspace.scim_user_deleted' | 'workspace.updated' | 'workspace.sso_provider_updated' | 'workspace.sso_provider_deleted' | 'workspace.sso_domain_verification_requested' | 'workspace.sso_domain_verified' | 'workspace.ownership_transferred' | 'workspace.deleted' | 'workspace.created' | 'team.checkout_abandoned' | 'enterprise.request_created' | 'workspace.converted_to_team' | 'workspace.deletion_scheduled' | 'workspace.deletion_cancelled' | 'workspace.invitation_resent' | 'team.seats_purchased' | 'team.seats_reduced' | 'admin.workspace.kind_changed' | 'admin.workspace.contract_seats' | 'admin.plan_grant.created' | 'admin.plan_grant.extended' | 'admin.plan_grant.revoked' | 'admin.plan_grant.ended' | 'admin.platform_discount.created' | 'admin.platform_discount.revoked' | 'admin.subscription.cancelled' | 'admin.subscription.resumed' | 'admin.money.exported' | 'admin.payment_search.pd_viewed' | 'workspace.sso_provider_created' | 'workspace.group_created' | 'workspace.group_updated' | 'workspace.group_deleted' | 'workspace.group_member_added' | 'workspace.group_member_removed' | 'workspace.group_roles_changed' | 'workspace.custom_role_created' | 'workspace.custom_role_updated' | 'workspace.custom_role_deleted' | 'workspace.role_ceiling_updated' | 'workspace.model_policy_updated' | 'workspace.retention_updated' | 'workspace.training_consent' | 'workspace.audit_exported' | 'workspace.compliance_updated' | 'workspace.card_payments_updated' | 'workspace.compliance_read' | 'api_key.created' | 'api_key.updated' | 'api_key.rolled' | 'api_key.revoked' | 'api_key.transferred' | 'api_key.disabled' | 'api_key.enabled' | 'webhook.endpoint_created' | 'webhook.endpoint_updated' | 'webhook.endpoint_deleted' | 'webhook.secret_rotated' | 'webhook.secret_read' | 'webhook.message_resent' | 'company.autonomy.changed' | 'automation.paused' | 'automation.resumed' | 'automation.run.cancel' | 'billing.profile.updated' | 'billing.payment_method.disabled' | 'billing.refund.succeeded' | 'billing.manual_charge' | 'subscription.created' | 'subscription.changed' | 'subscription.cancel_scheduled' | 'subscription.resumed' | 'subscription.terminated' | 'billing.refund_request.submitted' | 'billing.refund_request.approved' | 'billing.refund_request.rejected' | 'extra_usage.configured' | 'extra_usage.adjusted' | 'platform.configured' | 'platform.adjusted' | 'extra_usage.member_cap_set' | 'extra_usage.alert_thresholds_set' | 'company.spend_cap_set' | 'team.analytics_exported' | 'team.spend_exported' | 'ai_budget.member_set' | 'ai_budget.member_reset' | 'spend.cap_threshold_reached' | 'spend.company_cap_reached' | 'plan.created' | 'plan.updated' | 'usage_rate.added' | 'user.terms.accepted' | 'account.deletion_code_sent' | 'account.deletion_scheduled' | 'account.deletion_cancelled' | 'account.deleted' | 'langfuse.traces_purged' | 'admin.dialog.langfuse_dataset' | 'admin.dialog.langfuse_annotation' | 'account.email_code_sent' | 'account.email_bound' | 'account.telegram_merged' | 'account.google_linked' | 'account.telegram_merge_refused' | 'admin.ads.conversions_released' | 'admin.ads.conversions_rejected' | 'admin.ads.signups_exported' | 'admin.access.signed_in' | 'admin.access.refused' | 'admin.two_factor.verified' | 'admin.two_factor.enable_requested' | 'admin.two_factor.enabled' | 'admin.two_factor.disabled' | 'admin.session.signed_in' | 'admin.user.banned' | 'admin.user.unbanned' | 'admin.workspace.blocked' | 'admin.workspace.unblocked' | 'admin.workspace.training_consent' | 'admin.user.platform_roles_changed' | 'admin.user.free_eligibility_changed' | 'admin.user.limit_resets_granted' | 'admin.user.limit_resets_revoked' | 'usage.limit_reset_applied' | 'referral.claimed' | 'referral.rewarded' | 'referral.reward_revoked' | 'admin.enterprise_request.status_changed' | 'admin.training.exported' | 'admin.setting.changed' | 'admin.logs.purged' | 'admin.dialog.pd_viewed' | 'admin.dialog.viewed_without_consent' | 'admin.dialog.rating_comments_viewed' | 'admin.dialog.label_set' | 'admin.dialog.label_removed' | 'admin.journal.pd_viewed' | 'admin.company.pd_viewed' | 'admin.company.pd_searched' | 'admin.payment.pd_viewed' | 'site.post_published' | 'site.post_unpublished' | 'site.post_deleted' | 'site.legal_published' | 'site.trackers_saved' | 'help.section_created' | 'help.section_updated' | 'help.section_deleted' | 'help.article_created' | 'help.article_updated' | 'help.article_deleted' | 'help.reordered' | 'support.ticket_created' | 'admin.support.replied' | 'admin.support.note_added' | 'admin.support.ticket_updated' | 'admin.support.attachment_viewed' | 'admin.staff_access.granted' | 'admin.staff_access.revoked' | 'admin.staff_access.retried' | 'admin.staff_access.mail_resent' | 'canary.triggered' | 'billing.payment.new' | 'billing.payment.pending' | 'billing.payment.requires_action' | 'billing.payment.authorized' | 'billing.payment.succeeded' | 'billing.payment.verified' | 'billing.payment.failed' | 'billing.payment.cancelled' | 'billing.payment.partially_refunded' | 'billing.payment.refunded';
 
 /** Кто сделал */
 export interface AuditEntryActor {
@@ -1498,7 +1178,7 @@ export interface AutomationState {
 
 /** Поставить автоматизации компании на паузу или снять её. */
 export interface AutomationStateInput {
-  /** true — поставить все автоматизации компании на паузу: новые запуски не начинаются (идущий доводит текущий шаг, остановить его — POST …/runs/{id}/cancel), события хуков принимаются и ждут в очереди; false — снять паузу (п… */
+  /** true — поставить все автоматизации компании на паузу: новые запуски не начинаются (идущий доводит текущий шаг и ждёт снятия паузы в очереди, потом продолжит со следующего шага; остановить его совсем — POST …/runs/{id}/ca… */
   paused: boolean;
   /** Почему пауза — для журнала и коллег (до 500 знаков) */
   reason?: string | null;
@@ -1539,8 +1219,8 @@ export type AutomationTriggerEventEvent = 'proposal.awaiting_approval' | 'propos
 /** Запуск по событию хука. */
 export interface AutomationTriggerHook {
   filter?: AutomationEventFilter;
-  /** Хук, события которого запускают сценарий (hk_…) */
-  hook_id: string;
+  /** Хук, события которого запускают сценарий; null — хук удалён: событиями сценарий больше не запускается, пока ему не назначат другой хук (PUT …/scenarios/{id}) (hk_…) */
+  hook_id: string | null;
   /** `hook` — по событию хука */
   kind: 'hook';
 }
@@ -1942,34 +1622,6 @@ export interface BatchSummaryTotals {
   written: number;
 }
 
-/** Сессия привязки карты: открыть форму ePay; после неё клиент вернётся на back_link или failure_back_link, карта появится в списке. */
-export interface CardSession {
-  /** Служебный платёж проверки карты на 0 USD (в список платежей не попадает) (pay_…) */
-  payment_id: string;
-  /** Готовый объект для формы ePay: передать без изменений в halyk.pay(payment_object). Поля — формата ePay (camelCase), содержимое не разбирать. Внутри — одноразовый токен только на этот заказ */
-  payment_object: Record<string, unknown>;
-  /** Адрес скрипта платёжной формы ePay: подключить его на странице (тег script) перед открытием формы */
-  script_url: string;
-  /** true — тестовый терминал ePay: настоящие деньги не списываются, платят тестовыми картами. Показать на форме пометку «тестовая оплата» */
-  test_mode: boolean;
-}
-
-/** Итог привязки карты после возврата с формы банка. */
-export interface CardSessionState {
-  /** Почему карта не привязалась (только при status = failed, иначе null): card_taken — эта карта уже привязана другим человеком, предложить другую; abandoned — форму банка не открыли или закрыли, банк о заказе не узнал; decl… */
-  failure_code: CardSessionStateFailureCode | null;
-  /** Служебный платёж проверки карты — тот же, что в ответе POST …/card-sessions (pay_…) */
-  payment_id: string;
-  /** Итог привязки: pending — ждём ответа банка (спросить ещё раз позже); verified — карта привязана и уже в списке карт; failed — не привязана, причина в failure_code */
-  status: CardSessionStateStatus;
-}
-
-/** Почему карта не привязалась (только при status = failed, иначе null): card_taken — эта карта уже привязана другим человеком, предложить другую; abandoned — форму банка не открыли или закрыли, банк о заказе не узнал; decl… */
-export type CardSessionStateFailureCode = 'card_taken' | 'abandoned' | 'declined';
-
-/** Итог привязки: pending — ждём ответа банка (спросить ещё раз позже); verified — карта привязана и уже в списке карт; failed — не привязана, причина в failure_code */
-export type CardSessionStateStatus = 'pending' | 'verified' | 'failed';
-
 /** Ответ на уточняющий вопрос ИИ */
 export interface ChatAnswerRequest {
   /** Ответы — по одному на каждый вопрос, в том же порядке, что questions */
@@ -2002,8 +1654,10 @@ export interface ChatAssistantMessage {
   role: 'assistant';
   /** done — ход закончился сам; stopped — нажали «Стоп»; error — ошибка, отказ модели или предел шагов */
   state: ChatAssistantMessageState;
-  /** Размышления модели за ход одним текстом; пусто — не было */
+  /** Размышления модели за ход одним текстом; блок не по-русски без перевода — пометкой «Обдумываю…»; пусто — не было */
   thinking: string;
+  /** Те же размышления по блокам: блок не по-русски без перевода — оригиналом с translate_id */
+  thinking_parts: ChatThinkingPart[];
   /** Номер ответа в разговоре (он же X-Turn-No и средняя часть id): по нему ответ оценивают — PUT …/chat/{id}/messages/{turn}/rating */
   turn_no: number | bigint;
 }
@@ -2011,8 +1665,11 @@ export interface ChatAssistantMessage {
 /** done — ход закончился сам; stopped — нажали «Стоп»; error — ошибка, отказ модели или предел шагов */
 export type ChatAssistantMessageState = 'done' | 'stopped' | 'error';
 
-/** Файл к вопросу: PDF, скан, Excel, Word, выписка */
-export interface ChatAttachment {
+/** Файл к вопросу: PDF, скан, Excel, Word (.docx, .doc), выписка, архив (.zip, .rar, .7z) — base64 в теле или upload_id загрузки по частям */
+export type ChatAttachment = ChatAttachmentData | ChatAttachmentUpload;
+
+/** Файл в теле запроса, base64 */
+export interface ChatAttachmentData {
   /** Содержимое файла в base64 (можно с префиксом data:…;base64,) */
   data: string;
   /** MIME-тип; не обязателен: тип файла определяется по расширению и содержимому */
@@ -2029,6 +1686,12 @@ export interface ChatAttachmentMeta {
   name: string;
   /** Размер исходного файла, байт */
   size: number | bigint;
+}
+
+/** Архив, загруженный заранее по частям */
+export interface ChatAttachmentUpload {
+  /** Законченная загрузка архива по частям (POST …/chat/uploads) */
+  upload_id: string;
 }
 
 /** Ответ на один вопрос из события choice */
@@ -2108,6 +1771,8 @@ export interface ChatDialog {
   id: string;
   /** Сколько персональных данных (БИН, ИИН, имён, счетов) замаскировано в разговоре перед отправкой модели — для значка «данные скрыты» */
   masked: number;
+  /** false — разговор «без памяти» (выбран при создании): без памяти ИИ и поиска по прошлым разговорам — показать пометку в шапке */
+  memory: boolean;
   /** Сколько сообщений в messages */
   message_count: number;
   /** Сообщения от старых к новым */
@@ -2199,6 +1864,8 @@ export interface ChatDialogRenamed {
 export interface ChatDialogSummary {
   /** id разговора (обычно UUID): по нему продолжают разговор (dialog_id), открывают его GET …/chat/{id} и стирают */
   id: string;
+  /** false — разговор «без памяти» */
+  memory: boolean;
   /** Сколько сообщений в разговоре (вопросы и ответы) */
   message_count: number;
   /** true — ИИ сейчас отвечает: показать индикатор */
@@ -2211,7 +1878,7 @@ export interface ChatDialogSummary {
 }
 
 /** Одно событие потока: `id: <номер>`, `event: <type>`, `data: <JSON этого вида>`. Ещё бывает `event: ping` с пустым data — пульс, его пропускайте. Переподключение — GET …/chat/{id}/events с Last-Event-ID. */
-export type ChatEvent = ChatEventText | ChatEventProgress | ChatEventThinking | ChatEventStatus | ChatEventTool | ChatEventProposal | ChatEventCitation | ChatEventQuestion | ChatEventChoice | ChatEventError | ChatEventBatch | ChatEventBatchReport | ChatEventNext | ChatEventDone | ChatEventTitle;
+export type ChatEvent = ChatEventText | ChatEventProgress | ChatEventThinking | ChatEventStatus | ChatEventTool | ChatEventProposal | ChatEventCitation | ChatEventQuestion | ChatEventChoice | ChatEventError | ChatEventBatch | ChatEventBatchReport | ChatEventFile | ChatEventMemory | ChatEventNext | ChatEventDone | ChatEventTitle;
 
 /** Прогресс пачки (задания …/batch): обновить полосу прогресса */
 export interface ChatEventBatch {
@@ -2314,6 +1981,43 @@ export interface ChatEventError {
   type: 'error';
 }
 
+/** Файл, который ИИ собрал по просьбе человека (Excel, Word, PDF, CSV): карточка «Скачать» — GET …/chat/{dialog}/files/{file_id} */
+export interface ChatEventFile {
+  /** id файла (file_…) */
+  file_id: string;
+  /** xlsx — Excel; docx — Word; pdf — PDF; csv — CSV (UTF-8 с BOM, «;») */
+  format: ChatEventFileFormat;
+  /** Имя файла для человека, с расширением */
+  name: string;
+  /** Размер в байтах */
+  size: number | bigint;
+  /** Вид события: file */
+  type: 'file';
+}
+
+/** xlsx — Excel; docx — Word; pdf — PDF; csv — CSV (UTF-8 с BOM, «;») */
+export type ChatEventFileFormat = 'xlsx' | 'docx' | 'pdf' | 'csv';
+
+/** ИИ поправил свою память (запомнил, переписал или забыл запись): строка «Запомнил: …» под ответом с кнопкой «Отменить» — POST …/memory/events/{event_id}/undo. Ничего не ждёт: ход идёт дальше */
+export interface ChatEventMemory {
+  /** create — запомнил; update — переписал запись; delete — забыл */
+  action: ChatEventMemoryAction;
+  /** id события истории памяти (mev_…) — по нему «Отменить» */
+  event_id: string;
+  /** company — общая память компании; user — личная */
+  scope: ChatEventMemoryScope;
+  /** Запись после правки (у delete — забытая) */
+  text: string;
+  /** Вид события: memory */
+  type: 'memory';
+}
+
+/** create — запомнил; update — переписал запись; delete — забыл */
+export type ChatEventMemoryAction = 'create' | 'update' | 'delete';
+
+/** company — общая память компании; user — личная */
+export type ChatEventMemoryScope = 'company' | 'user';
+
 /** Что дальше — под законченным ответом, перед done, не чаще раза за ход: вопросы-продолжения и предложенное действие. Нажатие — обычный новый вопрос; сам ИИ ничего не запускает */
 export interface ChatEventNext {
   /** Предложенное следующее действие; null — нет */
@@ -2355,7 +2059,9 @@ export interface ChatEventQuestion {
 
 /** Служебное состояние хода без текста ответа */
 export interface ChatEventStatus {
-  /** Что происходит: - `compacting` — сервер сжимает историю длинного разговора - `escalating` — ответ перепроверяется более сильной моделью — ход займёт дольше - `elsewhere` — ответ готовится на другом сервере Tungo — он поя… */
+  /** Только у code = writing: сколько знаков ответа уже написано (не убывает в пределах одного ответа). Текста ответа в событии нет — он придёт событием text */
+  chars?: number | bigint;
+  /** Что происходит: - `compacting` — сервер сжимает историю длинного разговора - `escalating` — ответ перепроверяется более сильной моделью — ход займёт дольше - `checking_norm` — ответ сослался на норму, не открыв её: та же… */
   code?: ChatEventStatusCode;
   /** Что происходит — показать серой строкой */
   text: string;
@@ -2363,8 +2069,8 @@ export interface ChatEventStatus {
   type: 'status';
 }
 
-/** Что происходит: - `compacting` — сервер сжимает историю длинного разговора - `escalating` — ответ перепроверяется более сильной моделью — ход займёт дольше - `elsewhere` — ответ готовится на другом сервере Tungo — он поя… */
-export type ChatEventStatusCode = 'compacting' | 'escalating' | 'elsewhere';
+/** Что происходит: - `compacting` — сервер сжимает историю длинного разговора - `escalating` — ответ перепроверяется более сильной моделью — ход займёт дольше - `checking_norm` — ответ сослался на норму, не открыв её: та же… */
+export type ChatEventStatusCode = 'compacting' | 'escalating' | 'checking_norm' | 'writing' | 'elsewhere';
 
 /** Кусок текста ответа — дописать к ответу. step — виток цикла: если позже придёт progress с тем же step, этот текст — не ответ, а промежуточный шаг */
 export interface ChatEventText {
@@ -2376,10 +2082,14 @@ export interface ChatEventText {
   type: 'text';
 }
 
-/** Размышление модели (по-русски), кусками — можно показать свёрнутым блоком */
+/** Размышление модели кусками — можно показать свёрнутым блоком. Блок не по-русски приходит целиком в конце блока: original и translate_id */
 export interface ChatEventThinking {
-  /** Новый кусок размышления */
+  /** Новый кусок размышления по-русски; у блока не по-русски — пометка «Обдумываю…» (пусто, если она уже стоит) */
   delta: string;
+  /** Блок не по-русски целиком, как его написала модель */
+  original?: string;
+  /** id блока для перевода: POST …/chat/{id}/thinking/{translate_id}/translate — после ответа, когда человек раскрыл шаги */
+  translate_id?: string;
   /** Вид события: thinking */
   type: 'thinking';
 }
@@ -2409,6 +2119,37 @@ export interface ChatEventTool {
 /** started — идёт (крутилка); done — готово; error — не получилось */
 export type ChatEventToolStatus = 'started' | 'done' | 'error';
 
+/** Файл, собранный ИИ в одном из своих разговоров */
+export interface ChatFileItem {
+  /** Когда ИИ собрал файл, ISO 8601 UTC */
+  created_at: string;
+  /** id разговора (обычно UUID): по нему продолжают разговор (dialog_id), открывают его GET …/chat/{id} и стирают */
+  dialog_id: string;
+  /** Название разговора — как в списке разговоров (GET …/chat): персональные данные раскрыты */
+  dialog_title: string;
+  /** Относительный адрес скачивания (GET …/chat/{dialog_id}/files/{file_id}); тот же вход — сессия или ключ API */
+  download_url: string;
+  /** id файла (file_…) — тот же, что в событии file и блоке file истории */
+  file_id: string;
+  /** xlsx — Excel; docx — Word; pdf — PDF; csv — CSV (UTF-8 с BOM, «;») */
+  format: ChatFileItemFormat;
+  /** Имя файла для человека, с расширением */
+  name: string;
+  /** Размер в байтах */
+  size: number | bigint;
+}
+
+/** xlsx — Excel; docx — Word; pdf — PDF; csv — CSV (UTF-8 с BOM, «;») */
+export type ChatFileItemFormat = 'xlsx' | 'docx' | 'pdf' | 'csv';
+
+/** Файлы от ИИ в своих разговорах */
+export interface ChatFileList {
+  /** Файлы этой страницы, новые сверху */
+  data: ChatFileItem[];
+  /** Курсор следующей страницы. Чтобы получить её — тот же запрос (с теми же фильтрами) и `?cursor=<это значение>`. null — страниц больше нет (кнопку «Ещё» спрятать). Курсор непрозрачный: не разбирать и не собирать самому, хр… */
+  next_cursor: string | null;
+}
+
 /** Пачка, собранная ходом (разбор выписки, входящие ЭСФ), — то же, что событие batch_report в потоке: карточку результата взять свежей — GET …/batch/{job_id}/summary */
 export interface ChatHistoryBatch {
   /** id задания пачки (bat_…) */
@@ -2417,8 +2158,8 @@ export interface ChatHistoryBatch {
   kind: 'batch';
 }
 
-/** Блок ответа в истории — те же виды, что клиент собирает из живого потока: text | tool | proposal | batch | question | error */
-export type ChatHistoryBlock = ChatHistoryText | ChatHistoryTool | ChatHistoryProposal | ChatHistoryBatch | ChatHistoryQuestion | ChatHistoryError;
+/** Блок ответа в истории — те же виды, что клиент собирает из живого потока: text | tool | proposal | file | batch | memory | question | error */
+export type ChatHistoryBlock = ChatHistoryText | ChatHistoryTool | ChatHistoryProposal | ChatHistoryFile | ChatHistoryBatch | ChatHistoryMemory | ChatHistoryQuestion | ChatHistoryError;
 
 /** Ошибка хода */
 export interface ChatHistoryError {
@@ -2432,6 +2173,45 @@ export interface ChatHistoryError {
 
 /** Причина: - `budget` — кончился лимит (дня или разговора) - `parallel_turns_limit` — у человека уже идёт предельное число ходов ИИ (тариф без доп. использования) — дождаться ответа на предыдущие вопросы - `rate_limited` —… */
 export type ChatHistoryErrorCode = 'budget' | 'parallel_turns_limit' | 'rate_limited' | 'api' | 'refusal' | 'context_overflow' | 'aborted' | 'max_iterations' | 'max_tokens' | 'empty_answer' | 'unexpected' | 'history' | 'internal' | 'stream_failed' | 'batch_failed' | 'batch_abandoned';
+
+/** Файл, собранный ходом, — то же, что событие file в потоке: скачать — GET …/chat/{id}/files/{file_id} */
+export interface ChatHistoryFile {
+  /** id файла (file_…) */
+  file_id: string;
+  /** xlsx — Excel; docx — Word; pdf — PDF; csv — CSV (UTF-8 с BOM, «;») */
+  format: ChatHistoryFileFormat;
+  /** Файл от ИИ */
+  kind: 'file';
+  /** Имя файла для человека, с расширением */
+  name: string;
+  /** Размер в байтах */
+  size: number | bigint;
+}
+
+/** xlsx — Excel; docx — Word; pdf — PDF; csv — CSV (UTF-8 с BOM, «;») */
+export type ChatHistoryFileFormat = 'xlsx' | 'docx' | 'pdf' | 'csv';
+
+/** Строка «Запомнил: …» — то же, что событие memory в потоке; «Отменить» — POST …/memory/events/{event_id}/undo, пока undone = false */
+export interface ChatHistoryMemory {
+  /** create — запомнил; update — переписал запись; delete — забыл */
+  action: ChatHistoryMemoryAction;
+  /** id события истории памяти (mev_…) */
+  event_id: string;
+  /** Правка памяти ИИ */
+  kind: 'memory';
+  /** company — общая память компании; user — личная */
+  scope: ChatHistoryMemoryScope;
+  /** Запись после правки (у delete — забытая) */
+  text: string;
+  /** true — человек уже отменил эту правку (кнопки «Отменить» нет) */
+  undone: boolean;
+}
+
+/** create — запомнил; update — переписал запись; delete — забыл */
+export type ChatHistoryMemoryAction = 'create' | 'update' | 'delete';
+
+/** company — общая память компании; user — личная */
+export type ChatHistoryMemoryScope = 'company' | 'user';
 
 /** Упоминание через «@» в вопросе из истории: вид, id и название для чипа */
 export interface ChatHistoryMention {
@@ -2598,7 +2378,7 @@ export type ChatMessageRatingVote = 'up' | 'down';
 
 /** Вопрос ИИ-бухгалтеру */
 export interface ChatMessageRequest {
-  /** Файлы к вопросу. До 5 файлов, каждый до 10 МБ, все вместе до 14 МБ (до кодирования в base64). Картинка — до 5 МБ, PDF — до 100 страниц. Форматы (по расширению имени): .pdf, .jpg, .jpeg, .png, .webp, .docx, .xlsx, .xls, .… */
+  /** Файлы к вопросу. До 5 файлов, каждый до 10 МБ, все вместе до 14 МБ (до кодирования в base64). Картинка — до 5 МБ, PDF — до 100 страниц. Форматы (по расширению имени): .pdf, .jpg, .jpeg, .png, .webp, .svg, .docx, .doc, .x… */
   attachments?: ChatAttachment[];
   /** Что умеет клиент: ["choice"] — показывать уточняющие вопросы с вариантами (событие choice). Без него ИИ спрашивает обычным текстом */
   capabilities?: string[];
@@ -2606,6 +2386,8 @@ export interface ChatMessageRequest {
   dialog_id?: string | null;
   /** Усилие ИИ на этот вопрос: low < medium < high < xhigh < max — глубже думает, дольше и дороже (больше расход лимита). Не прислано или null — усилие выбирает Tungo. Только на тарифе с выбором усилия (max_effort тарифа в GE… */
   effort?: ChatMessageRequestEffort | null;
+  /** false — разговор «без памяти»: ИИ не видит, что запомнил раньше, ничего не запоминает и не ищет по прошлым разговорам, а сам разговор не попадает в поиск. Действует только в первом сообщении нового разговора и не меняетс… */
+  memory?: boolean;
   /** Упоминания через «@» в этом вопросе, до 10: ИИ получит их вместе с вопросом. Каждое проверяется на доступ: нет объекта в этой компании или нет права его видеть — 404 (error.code = mention_not_found, error.index — номер в… */
   mentions?: ChatMention[];
   /** Вопрос человека, до 4000 знаков; можно не писать, если приложены файлы */
@@ -2642,6 +2424,16 @@ export interface ChatNextAction {
 export type ChatNextActionCode = 'prepare_document' | 'run_check' | 'build_tax_form' | 'check_counterparty';
 
 export type ChatNextActionParamsValue = string | number | boolean;
+
+/** Документ 1С, о котором вопрос (кнопки «Спросить Tungo» и «Проверить в Tungo» в 1С); нет — вопрос без документа */
+export interface ChatOnecObject {
+  /** Ref_Key документа (GUID) */
+  key: string;
+  /** Набор OData документа, например Document_ПоступлениеТоваровУслуг */
+  set: string;
+  /** Название документа в 1С на момент вопроса, например «Поступление товаров и услуг 0000-000012 от 17.11.2026 12:00:00» */
+  title: string;
+}
 
 /** Открытый уточняющий вопрос: показать варианты; ответ — POST …/chat/{id}/answer */
 export interface ChatPendingQuestion {
@@ -2744,6 +2536,24 @@ export interface ChatSuggestions {
 /** Язык текстов в ответе */
 export type ChatSuggestionsLocale = 'ru' | 'kk';
 
+/** Кусок размышлений ответа по порядку блоков */
+export interface ChatThinkingPart {
+  /** Текст: по-русски (или уже переведённый); у блока с translate_id — оригинал модели (обычно по-английски) */
+  text: string;
+  /** Есть — блок не по-русски и ещё не переведён: перевод — POST …/chat/{id}/thinking/{translate_id}/translate, когда человек раскрыл шаги */
+  translate_id?: string;
+}
+
+/** Блок размышления по-русски */
+export interface ChatThinkingTranslation {
+  /** true — перевод уже был, модель не звали */
+  cached: boolean;
+  /** id блока размышления не по-русски (16 hex): тот же в событии thinking и в истории */
+  id: string;
+  /** Блок по-русски */
+  text: string;
+}
+
 /** Откуда название разговора: first_message — первый вопрос (пока ИИ не придумал название, или не смог); ai — придумал ИИ после первого ответа (событие title в потоке хода); user — задал человек (PATCH …/chat/{id}), ИИ его … */
 export type ChatTitleSource = 'first_message' | 'ai' | 'user';
 
@@ -2763,7 +2573,7 @@ export interface ChatTokenCount {
 
 /** Вопрос, размер которого нужно посчитать */
 export interface ChatTokenCountRequest {
-  /** Файлы, как в POST …/chat. До 5 файлов, каждый до 10 МБ, все вместе до 14 МБ (до кодирования в base64). Картинка — до 5 МБ, PDF — до 100 страниц. Форматы (по расширению имени): .pdf, .jpg, .jpeg, .png, .webp, .docx, .xlsx… */
+  /** Файлы, как в POST …/chat. До 5 файлов, каждый до 10 МБ, все вместе до 14 МБ (до кодирования в base64). Картинка — до 5 МБ, PDF — до 100 страниц. Форматы (по расширению имени): .pdf, .jpg, .jpeg, .png, .webp, .svg, .docx,… */
   attachments?: ChatAttachment[];
   /** Разговор, чья история считается; нет — новый разговор */
   dialog_id?: string;
@@ -2798,6 +2608,21 @@ export type ChatTurnErrorCode = 'budget' | 'parallel_turns_limit' | 'rate_limite
 /** Только у code = budget — почему ход остановлен: - `day` — дневной лимит человека исчерпан — продолжить завтра (по Алматы) или поднять лимит - `dialog` — лимит разговора исчерпан — начать новый разговор - `turn` — потолок… */
 export type ChatTurnErrorLimitKind = 'day' | 'dialog' | 'turn' | 'plan' | 'disabled' | 'meter';
 
+/** Файл, собранный в ходе: скачать — GET …/chat/{dialog_id}/files/{file_id} */
+export interface ChatTurnFile {
+  /** id файла (file_…) */
+  file_id: string;
+  /** xlsx — Excel; docx — Word; pdf — PDF; csv — CSV (UTF-8 с BOM, «;») */
+  format: ChatTurnFileFormat;
+  /** Имя файла для человека, с расширением */
+  name: string;
+  /** Размер в байтах */
+  size: number | bigint;
+}
+
+/** xlsx — Excel; docx — Word; pdf — PDF; csv — CSV (UTF-8 с BOM, «;») */
+export type ChatTurnFileFormat = 'xlsx' | 'docx' | 'pdf' | 'csv';
+
 /** Предложение, подготовленное в ходе */
 export interface ChatTurnProposal {
   card: ProposalCard;
@@ -2815,6 +2640,8 @@ export interface ChatTurnResult {
   dialog_id: string;
   /** Ошибки хода (как error в событии error); пусто — без ошибок */
   errors: ChatTurnError[];
+  /** Файлы (Excel, Word, PDF, CSV), которые ИИ собрал в этом ходе */
+  files: ChatTurnFile[];
   /** Вопросы-продолжения под ответом, до 3, на языке разговора: нажатие — обычный новый вопрос с этим текстом. Пусто — предложить нечего */
   followups: string[];
   /** Предложенное следующее действие; null — нет */
@@ -2846,6 +2673,44 @@ export interface ChatTurnUsage {
   output_tokens: number | bigint;
 }
 
+/** Загрузка архива по частям */
+export interface ChatUpload {
+  /** Когда загрузка удалится, если сообщение с ней не отправлено (через 24 ч), ISO 8601 UTC */
+  expires_at: string;
+  /** Имя архива, как его увидит ИИ */
+  name: string;
+  /** Размер каждой части, кроме последней (8388608); последняя — остаток */
+  part_bytes: number | bigint;
+  /** Сколько частей прислать: номера с 0 по parts − 1 */
+  parts: number | bigint;
+  /** Размер файла, байт */
+  size: number | bigint;
+  /** id загрузки (upl_…) */
+  upload_id: string;
+}
+
+/** Начать загрузку архива */
+export interface ChatUploadCreate {
+  /** Имя архива с расширением .zip, .rar или .7z */
+  name: string;
+  /** Размер файла в байтах, до 104857600 */
+  size: number | bigint;
+}
+
+/** Часть принята */
+export interface ChatUploadPart {
+  /** true — все части на месте: upload_id можно отправлять в attachments */
+  complete: boolean;
+  /** Номер принятой части */
+  part: number | bigint;
+  /** Сколько частей всего */
+  parts: number | bigint;
+  /** Сколько частей уже принято */
+  received_parts: number | bigint;
+  /** id загрузки (upl_…) */
+  upload_id: string;
+}
+
 /** Расход модели за ход в токенах. Только ключу API (платформа разработчиков): кабинет токенов хода не получает — вместе с ценами моделей они дают стоимость ответа */
 export interface ChatUsage {
   /** Токенов, прочитанных из кэша модели (дешевле обычных) */
@@ -2868,6 +2733,7 @@ export interface ChatUserMessage {
   id: string;
   /** Упоминания через «@» в этом вопросе, если были: вид, id и название на момент отправки */
   mentions?: ChatHistoryMention[];
+  onec_object?: ChatOnecObject;
   /** Вопрос идущего хода: ответа ещё нет, его дочитывают потоком (GET …/chat/{id}/events?turn=). Только у последнего сообщения */
   pending?: true;
   /** Сообщение человека */
@@ -3197,12 +3063,67 @@ export interface DirectBankPollResult {
   job_id: string | null;
 }
 
-/** Куда вернуть клиента после формы ePay (только адреса нашего фронтенда). */
-export interface EpayReturnLinks {
-  /** Страница кабинета, куда ePay вернёт клиента после успеха. Только адрес нашего фронтенда, иначе 400 */
-  back_link: string;
-  /** Страница кабинета, куда вернуть после отказа или отмены. Только адрес нашего фронтенда */
-  failure_back_link: string;
+/** Tungo Connector — программа в офисе; null — ещё не выпущен */
+export interface DownloadConnector {
+  /** По файлу на систему и архитектуру */
+  files: DownloadConnectorFile[];
+  /** Что нового — для человека (Markdown) */
+  notes: string;
+  /** Когда выпущен. ISO 8601 в UTC (…Z); показывать по времени Казахстана — Asia/Almaty (UTC+5), а не по поясу браузера */
+  published_at: string;
+  /** Версия */
+  version: string;
+}
+
+/** Установщик Tungo Connector для системы: windows — .exe, darwin — .pkg */
+export interface DownloadConnectorFile {
+  /** Архитектура */
+  arch: DownloadConnectorFileArch;
+  /** Имя файла */
+  name: string;
+  /** Система */
+  os: DownloadConnectorFileOs;
+  /** SHA-256 файла, 64 шестнадцатеричных знака */
+  sha256: string;
+  /** Размер, байт */
+  size: number | bigint;
+  /** https-адрес файла в выпуске TungoAI/tungo-releases на GitHub */
+  url: string;
+}
+
+/** Архитектура */
+export type DownloadConnectorFileArch = 'amd64' | 'arm64';
+
+/** Система */
+export type DownloadConnectorFileOs = 'windows' | 'darwin' | 'linux';
+
+/** Файл выпуска */
+export interface DownloadFile {
+  /** Имя файла */
+  name: string;
+  /** SHA-256 файла, 64 шестнадцатеричных знака */
+  sha256: string;
+  /** Размер, байт */
+  size: number | bigint;
+  /** https-адрес файла в выпуске TungoAI/tungo-releases на GitHub */
+  url: string;
+}
+
+/** Расширение Tungo для 1С (Tungo.cfe); null — ещё не выпущено */
+export interface DownloadOnecExtension {
+  file: DownloadFile;
+  /** Что нового — для человека (Markdown) */
+  notes: string;
+  /** Когда выпущен. ISO 8601 в UTC (…Z); показывать по времени Казахстана — Asia/Almaty (UTC+5), а не по поясу браузера */
+  published_at: string;
+  /** Версия */
+  version: string;
+}
+
+/** Последние выпуски Tungo для скачивания */
+export interface Downloads {
+  connector: DownloadConnector | null;
+  onec_extension: DownloadOnecExtension | null;
 }
 
 /** Тело любой ошибки API (статусы 4xx и 5xx): `{"type":"error","error":{"type":"…","code":"…","message":"…"},"request_id":"…"}`. Интерфейс ветвится по error.type и error.code, человеку показывает error.message и request_id. */
@@ -3739,6 +3660,9 @@ export interface ListCompanyAutomationsScenariosResponse {
   data: AutomationScenario[];
 }
 
+/** Только этого формата: xlsx, docx, pdf или csv */
+export type ListCompanyChatFilesFormat = 'xlsx' | 'docx' | 'pdf' | 'csv';
+
 /** Язык названий причин; по умолчанию ru */
 export type ListCompanyChatRatingOptionsLang = 'ru' | 'kk';
 
@@ -3850,14 +3774,14 @@ export type OneCCapabilityId = 'core' | 'reports' | 'documents' | 'cash' | 'esf'
 /** yes — будет; partial — частично; no — не будет; unknown — узнаем при первой записи (права на запись 1С заранее не сообщает) */
 export type OneCCapabilityStatus = 'yes' | 'partial' | 'no' | 'unknown';
 
-/** Как Tungo достаёт данные 1С: odata — живая 1С через интернет; connector — коробочная 1С в офисе через программу Tungo Connector; snapshot — загруженная копия базы, только чтение; fake — только в тестах */
-export type OneCGateway = 'odata' | 'snapshot' | 'fake' | 'connector';
+/** Как Tungo достаёт данные 1С: odata — живая 1С через интернет; connector — коробочная 1С в офисе через программу Tungo Connector; module — через расширение «Tungo в 1С», пока у человека открыта 1С; snapshot — загруженная … */
+export type OneCGateway = 'odata' | 'snapshot' | 'fake' | 'connector' | 'module';
 
 /** Состояние подключения к 1С без настроек и секретов */
 export interface OneCStatus {
   /** Подключена ли 1С */
   connected: boolean;
-  /** Как Tungo достаёт данные 1С: odata — живая 1С через интернет; connector — коробочная 1С в офисе через программу Tungo Connector; snapshot — загруженная копия базы, только чтение; fake — только в тестах; null — не подключ… */
+  /** Как Tungo достаёт данные 1С: odata — живая 1С через интернет; connector — коробочная 1С в офисе через программу Tungo Connector; module — через расширение «Tungo в 1С», пока у человека открыта 1С; snapshot — загруженная … */
   gateway: OneCGateway | null;
   /** Итог последней проверки; null — не проверялось или не подключена */
   last_check: OneCStatusLastCheck | null;
@@ -3881,36 +3805,6 @@ export interface OneCStatusLastCheck {
 
 /** Итог: ok — всё в порядке; warn — работать можно, но не всё (смотрите checks); fail — работать нельзя */
 export type OneCStatusLastCheckVerdict = 'ok' | 'warn' | 'fail';
-
-/** Оплата счёта на форме ePay с подтверждением 3-D Secure. */
-export interface PayForm {
-  /** Сумма к оплате на форме. Целое число тиынов: 1 ₸ = 100 тиын. Показывать как тиыны / 100 со знаком ₸ (520000 → «5 200 ₸»; дробь — только если не 0) */
-  amount_tiyn: number | bigint;
-  /** Новый платёж на ту же сумму — его статус смотреть в списке платежей (pay_…) */
-  payment_id: string;
-  /** Готовый объект для формы ePay: передать без изменений в halyk.pay(payment_object). Поля — формата ePay (camelCase), содержимое не разбирать. Внутри — одноразовый токен только на этот заказ */
-  payment_object: Record<string, unknown>;
-  /** Адрес скрипта платёжной формы ePay: подключить его на странице (тег script) перед открытием формы */
-  script_url: string;
-  /** true — тестовый терминал ePay: настоящие деньги не списываются, платят тестовыми картами. Показать на форме пометку «тестовая оплата» */
-  test_mode: boolean;
-}
-
-/** Привязанная банковская карта организации. */
-export interface PaymentMethod {
-  /** Маска номера карты для показа; null — банк не сообщил */
-  card_mask: string | null;
-  /** Платёжная система (VISA, MASTERCARD…), как её назвал банк; null — неизвестна */
-  card_type: string | null;
-  /** Когда карта привязана. ISO 8601 в UTC (…Z); показывать по времени Казахстана — Asia/Almaty (UTC+5), а не по поясу браузера */
-  created_at: string;
-  /** id карты — для DELETE …/payment-methods/{pm} (pm_…) */
-  id: string;
-  /** Основная карта: с неё списываются подписка, подключение компаний и автопополнение. Пометить «основная» */
-  is_default: boolean;
-  /** Банк-эмитент карты; null — неизвестен */
-  issuer: string | null;
-}
 
 /** Счёт платформы для разработчиков: баланс, настройки и траты месяца; ключу на часть компаний — только баланс и потолок. С чатом не пересекается. */
 export interface PlatformAccount {
@@ -3954,6 +3848,8 @@ export interface PlatformAutoReload {
   amount_tiyn: number | bigint | null;
   /** Включено ли автопополнение с карты организации */
   enabled: boolean;
+  /** Автопополнений за календарный месяц по Алматы не больше этого; месячный потолок трат исчерпан — автопополнения нет */
+  monthly_count_max: number | bigint;
   /** Сколько автопополнение может списать за месяц, в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸); null — предел платформы */
   monthly_limit_tiyn: number | bigint | null;
   /** Порог: баланс ниже — пополнить, в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸); null — не задан */
@@ -3988,7 +3884,7 @@ export interface PlatformLedgerEntry {
 
 /** Документы пополнения (kind = purchase) из его платежа. null — у остальных видов и у ключа не на все компании. Файл PDF ядро не формирует: чек выпускает касса, ссылка появляется в receipt_url */
 export interface PlatformLedgerEntryDocuments {
-  /** Номер акта выполненных работ (ACT-…), когда платёж прошёл; null — нет */
+  /** Устарело: номер акта (ACT-…) только у старых платежей; у новых — null, акт ежемесячный (GET /v1/workspaces/{ws}/documents) */
   act_number: string | null;
   /** Номер счёта на оплату по этому пополнению (TG-…); null — нет */
   invoice_number: string | null;
@@ -4024,6 +3920,12 @@ export interface PlatformLimitsConcurrentTurns {
 
 /** Размеры файлов и тел запросов */
 export interface PlatformLimitsFiles {
+  /** Один архив, байт; в attachments_total_bytes не входит. Больше attachment_bytes — только загрузкой по частям (POST …/chat/uploads) */
+  archive_bytes: number | bigint;
+  /** Файлов в архиве вместе с вложенными архивами */
+  archive_files: number | bigint;
+  /** Архивов (.zip, .rar, .7z) в одном сообщении */
+  archives_per_message: number | bigint;
   /** Один файл, байт (до кодирования в base64) */
   attachment_bytes: number | bigint;
   /** Сколько файлов в одном сообщении чата */
@@ -4042,6 +3944,8 @@ export interface PlatformLimitsFiles {
   pdf_pages: number | bigint;
   /** Тело остальных запросов, байт; больше — 413 payload_too_large */
   request_bytes: number | bigint;
+  /** Часть загрузки архива (PUT …/chat/uploads/{upload_id}/parts/{n}), байт; последняя — остаток */
+  upload_part_bytes: number | bigint;
 }
 
 /** Частота запросов; сверх предела — 429 rate_limited */
@@ -4072,29 +3976,6 @@ export interface PlatformLimitsRateWorkspace {
   reset_in_sec: number | bigint | null;
 }
 
-/** Пополнение баланса платформы: платёж и баланс. */
-export interface PlatformPurchase {
-  /** Сумма платежа в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  amount_tiyn: number | bigint;
-  /** Баланс платформы сейчас (пополнение входит, только если платёж уже прошёл) в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  balance_tiyn: number | bigint;
-  /** Платёж картой (pay_…) */
-  payment_id: string;
-  /** Состояние платежа: `succeeded` — деньги списаны, баланс пополнен; `new` / `pending` / `authorized` — идёт; `requires_action` — банк ждёт 3-D Secure; `failed` / `cancelled` — не прошёл */
-  status: PlatformPurchaseStatus;
-}
-
-/** Пополнение баланса платформы. */
-export interface PlatformPurchaseInput {
-  /** Сумма пополнения в тиынах (1 ₸ = 100 тиын). Границы суммы и дневной предел — настройка платформы platform.purchase */
-  amount_tiyn: number | bigint;
-  /** Ключ повтора (8–200 знаков, например UUID): создайте один раз на нажатие «Пополнить»; повтор с тем же ключом не списывает второй раз */
-  idempotency_key: string;
-}
-
-/** Состояние платежа: `succeeded` — деньги списаны, баланс пополнен; `new` / `pending` / `authorized` — идёт; `requires_action` — банк ждёт 3-D Secure; `failed` / `cancelled` — не прошёл */
-export type PlatformPurchaseStatus = 'new' | 'pending' | 'requires_action' | 'authorized' | 'succeeded' | 'verified' | 'failed' | 'cancelled' | 'partially_refunded' | 'refunded';
-
 /** Запрос по ключу API в журнале. Тела запросов и ответов не хранятся. */
 export interface PlatformRequest {
   /** Ключ запроса (key_…); отказы при входе (выключен, адрес, частота) тоже записаны на него */
@@ -4123,28 +4004,6 @@ export interface PlatformRequest {
   request_id: string;
   /** Статус ответа HTTP */
   status: number | bigint;
-}
-
-/** Настройки платформы — целиком. */
-export interface PlatformSettingsInput {
-  /** Автопополнение баланса с карты организации. Не передано — выключено */
-  auto_reload?: PlatformSettingsInputAutoReload;
-  /** Выключатель платформы: false — вызовы по ключам и автоматизации останавливаются */
-  enabled: boolean;
-  /** Потолок трат платформы за календарный месяц по Алматы, в тиынах (1 ₸ = 100 тиын). null — без потолка */
-  monthly_cap_tiyn: number | bigint | null;
-}
-
-/** Автопополнение баланса с карты организации. Не передано — выключено */
-export interface PlatformSettingsInputAutoReload {
-  /** На сколько пополнять в тиынах (в пределах сумм пополнения платформы). null — не задано */
-  amount_tiyn: number | bigint | null;
-  /** Включить автопополнение с карты (нужны threshold_tiyn и amount_tiyn) */
-  enabled: boolean;
-  /** Сколько автопополнение может списать за месяц, в тиынах. null — предел платформы; больше предела платформы не спишет */
-  monthly_limit_tiyn?: number | bigint | null;
-  /** Порог в тиынах: баланс ниже — пополнить. null — не задан */
-  threshold_tiyn: number | bigint | null;
 }
 
 /** Расход платформы за период с разбивкой и токенами всех видов. */
@@ -4657,6 +4516,108 @@ export type ProposalSourceChannel = 'mcp' | 'pipeline' | 'cli' | 'web' | 'api';
 /** Где предложение в жизненном цикле (подпись по-русски — в status_title рядом): - previewed — ждёт решения бухгалтера: показать кнопки «Записать» и «Отклонить»; - approved — одобрено, но запись в 1С не закончена (1С не отв… */
 export type ProposalStatus = 'previewed' | 'approved' | 'rejected' | 'committed' | 'posted' | 'verified' | 'mismatch' | 'failed';
 
+/** Документ, подписанный в Tungo, и итог проверки его подписей */
+export interface PublicVerification {
+  /** Код проверки */
+  code: string;
+  /** Контрагент маской — узнать «свой» документ, не раскрывая его */
+  counterparty_masked: string | null;
+  /** Дата документа. Календарная дата ГГГГ-ММ-ДД — показывать как есть (ДД.ММ.ГГГГ), без перевода часовых поясов */
+  date: string | null;
+  /** Когда служба выдала этот ответ (проверка OCSP — по ocsp_checked_at). ISO 8601 в UTC (…Z); показывать по времени Казахстана — Asia/Almaty (UTC+5), а не по поясу браузера */
+  issued_at: string | null;
+  /** Вид документа (act, invoice, contract …) */
+  kind: string;
+  /** Вид для человека */
+  kind_title: string | null;
+  /** Номер документа */
+  number: string | null;
+  /** Документ заменён исправленным: какой версией; null — действует */
+  replaced_by: PublicVerificationReplacedBy | null;
+  /** Продавец (Tungo) */
+  seller: PublicVerificationSeller | null;
+  /** Чей документ: documents — Tungo и организации-клиента, partners — партнёрской программы */
+  service: PublicVerificationService;
+  /** SHA-256 подписанного PDF (hex) */
+  sha256: string | null;
+  /** Подписи документа ЭЦП */
+  signatures: PublicVerifySignature[];
+  /** Статус документа у службы (signed, accepted, replaced, cancelled …) */
+  status: string;
+  /** Статус для человека */
+  status_title: string | null;
+}
+
+/** Документ заменён исправленным: какой версией; null — действует */
+export interface PublicVerificationReplacedBy {
+  /** Номер новой версии */
+  number: string | null;
+  /** Проверка новой версии */
+  verify_url: string;
+}
+
+/** Продавец (Tungo) */
+export interface PublicVerificationSeller {
+  /** ИИН/БИН продавца */
+  iin: string | null;
+  /** Название продавца */
+  name: string | null;
+}
+
+/** Чей документ: documents — Tungo и организации-клиента, partners — партнёрской программы */
+export type PublicVerificationService = 'documents' | 'partners';
+
+/** Подпись документа и итог её проверки */
+export interface PublicVerifySignature {
+  /** Кто выдал сертификат */
+  cert_issuer: string | null;
+  /** Серийный номер сертификата (hex) */
+  cert_serial: string | null;
+  /** Сертификат действует с. ISO 8601 в UTC (…Z); показывать по времени Казахстана — Asia/Almaty (UTC+5), а не по поясу браузера */
+  cert_valid_from: string | null;
+  /** Сертификат действует по. ISO 8601 в UTC (…Z); показывать по времени Казахстана — Asia/Almaty (UTC+5), а не по поясу браузера */
+  cert_valid_to: string | null;
+  /** Как получен итог: live — подпись перепроверена сейчас (криптография, цепочка до корня НУЦ, OCSP; при сбое — последняя такая проверка, см. live_error); at_signing — перепроверить не удалось, итог по данным проверки при по… */
+  check_mode: PublicVerifySignatureCheckMode;
+  /** Когда получен итог: время перепроверки (live) или проверки при подписании (at_signing). ISO 8601 в UTC (…Z); показывать по времени Казахстана — Asia/Almaty (UTC+5), а не по поясу браузера */
+  checked_at: string | null;
+  /** ИИН или БИН из сертификата. ИИН физлица-контрагента — маской (8501••••••12); БИН и данные Tungo — полностью */
+  iin_bin: string | null;
+  /** Почему сейчас перепроверить не удалось (служба подписи, NCANode или OCSP НУЦ недоступны, предел); null — итог свежий */
+  live_error: PublicVerifySignatureLiveError | null;
+  /** Когда спрашивали OCSP. ISO 8601 в UTC (…Z); показывать по времени Казахстана — Asia/Almaty (UTC+5), а не по поясу браузера */
+  ocsp_checked_at: string | null;
+  /** Ответ OCSP НУЦ о сертификате: good — действует, revoked — отозван, unknown — НУЦ не знает; null — не проверялся */
+  ocsp_status: PublicVerifySignatureOcspStatus | null;
+  /** Причина отзыва сертификата (CRLReason), если служба её знает; пока всегда null */
+  revocation_reason: string | null;
+  /** Когда отозван сертификат подписанта по данным OCSP НУЦ; null — не отозван или неизвестно. ISO 8601 в UTC (…Z); показывать по времени Казахстана — Asia/Almaty (UTC+5), а не по поясу браузера */
+  revoked_at: string | null;
+  /** Чья подпись: tungo — Tungo (продавец), buyer — покупатель, partner — партнёр */
+  side: PublicVerifySignatureSide;
+  /** Время подписи — метка времени НУЦ РК (TSP) в CMS. ISO 8601 в UTC (…Z); показывать по времени Казахстана — Asia/Almaty (UTC+5), а не по поясу браузера */
+  signed_at: string;
+  /** Владелец сертификата, как в нём записано */
+  signer_name: string | null;
+  /** Итог проверки подписи: valid — подпись и сертификат действительны; valid_at_signing_time — подпись верна, сертификат был действителен на момент подписи (метка НУЦ), сейчас истёк или отозван позже; invalid — не прошла (до… */
+  verdict: PublicVerifySignatureVerdict;
+}
+
+/** Как получен итог: live — подпись перепроверена сейчас (криптография, цепочка до корня НУЦ, OCSP; при сбое — последняя такая проверка, см. live_error); at_signing — перепроверить не удалось, итог по данным проверки при по… */
+export type PublicVerifySignatureCheckMode = 'live' | 'at_signing';
+
+/** Почему сейчас перепроверить не удалось (служба подписи, NCANode или OCSP НУЦ недоступны, предел); null — итог свежий */
+export type PublicVerifySignatureLiveError = 'signer_not_configured' | 'signer_unavailable' | 'rate_limited' | 'ncanode_unavailable' | 'ocsp_unavailable' | 'not_supported';
+
+/** Ответ OCSP НУЦ о сертификате: good — действует, revoked — отозван, unknown — НУЦ не знает; null — не проверялся */
+export type PublicVerifySignatureOcspStatus = 'good' | 'revoked' | 'unknown';
+
+/** Чья подпись: tungo — Tungo (продавец), buyer — покупатель, partner — партнёр */
+export type PublicVerifySignatureSide = 'tungo' | 'buyer' | 'partner';
+
+/** Итог проверки подписи: valid — подпись и сертификат действительны; valid_at_signing_time — подпись верна, сертификат был действителен на момент подписи (метка НУЦ), сейчас истёк или отозван позже; invalid — не прошла (до… */
+export type PublicVerifySignatureVerdict = 'valid' | 'valid_at_signing_time' | 'invalid' | 'indeterminate';
+
 /** Тело отклонения */
 export interface RejectRequest {
   /** Только человек в кабинете (по ключу API — 403 permission_error, code human_only). Отклонить одобренное «не знаем, записан ли» (write_unknown) или отмену «не знаем, отменён ли» (revert_unknown), пока подключён снимок базы… */
@@ -4962,12 +4923,86 @@ export interface UsageRate {
   effective_from: string;
   /** Цена 1 млн входных токенов (вопрос и контекст; токен — кусочек текста) в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
   input_per_mtok_tiyn: number | bigint;
+  /** Длинный контекст: если вход вызова вместе с кэшем длиннее above_tokens, весь вызов считается по этим ценам (как в прайсе провайдера); null — у модели одна цена */
+  long_context: UsageRateLongContext | null;
   /** Модель ИИ: tungo-1-flash, tungo-1, tungo-1-deep (tungo-search — поиск по нормам, tungo-legacy — прежняя) */
   model: string;
   /** Цена 1 млн токенов ответа в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
   output_per_mtok_tiyn: number | bigint;
   /** Название модели для людей */
   title: string;
+  /** Цена 1000 запросов поиска на официальных сайтах РК (когда нормы нет в базе знаний); 0 — модель не ищет в интернете в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
+  web_search_per_1k_tiyn: number | bigint;
+}
+
+/** Цены вызова с длинным контекстом. */
+export interface UsageRateLongContext {
+  /** Порог: вход вызова вместе с чтением и записью кэша, токенов */
+  above_tokens: number | bigint;
+  /** Цена 1 млн токенов чтения из кэша длинного вызова в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
+  cache_read_per_mtok_tiyn: number | bigint;
+  /** Цена 1 млн токенов записи в кэш на 1 час длинного вызова в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
+  cache_write_1h_per_mtok_tiyn: number | bigint;
+  /** Цена 1 млн токенов записи в кэш на 5 минут длинного вызова в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
+  cache_write_per_mtok_tiyn: number | bigint;
+  /** Цена 1 млн входных токенов длинного вызова в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
+  input_per_mtok_tiyn: number | bigint;
+  /** Цена 1 млн токенов ответа длинного вызова в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
+  output_per_mtok_tiyn: number | bigint;
+}
+
+/** Итог сверки файла */
+export interface VerifyCheck {
+  /** true — файл совпадает с подписанным */
+  match: boolean;
+}
+
+/** Хэш файла для сверки */
+export interface VerifyCheckInput {
+  /** SHA-256 файла, 64 шестнадцатеричных знака */
+  sha256: string;
+}
+
+/** Открытый ключ подписи QR (JWK) */
+export interface VerifyKey {
+  /** Алгоритм подписи */
+  alg: string;
+  /** Кривая ключа */
+  crv: 'P-256';
+  /** id ключа — как в заголовке COSE (kid) */
+  kid: string;
+  /** Тип ключа (RFC 7518): EC — эллиптическая кривая */
+  kty: 'EC';
+  /** Назначение ключа: sig — подпись */
+  use: string;
+  /** Координата x, base64url */
+  x: string;
+  /** Координата y, base64url */
+  y: string;
+}
+
+/** Набор открытых ключей QR */
+export interface VerifyKeys {
+  /** Действующие ключи; формат JWKS (RFC 7517) — поле keys, а не data */
+  keys: VerifyKey[];
+}
+
+/** Подписанный блок QR */
+export interface VerifyQrInput {
+  /** Блок из фрагмента ссылки QR, начиная с k1. */
+  payload: string;
+}
+
+/** Итог проверки подписанного блока QR */
+export interface VerifyQrResult {
+  /** Утверждения QR; null — блок не разобрать */
+  claims: Record<string, unknown> | null;
+  /** Каким ключом подписан */
+  kid: string | null;
+  /** Почему не сошлось (текст службы) */
+  reason: string | null;
+  /** Подпись блока сошлась с ключом Tungo */
+  valid: boolean;
 }
 
 /** Попытка доставить событие на адрес. */

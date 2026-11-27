@@ -133,6 +133,20 @@ export interface ChatListParams {
   limit?: number | undefined;
 }
 
+/** Query parameters of `chat.listFiles`. */
+export interface ChatListFilesParams {
+  /** next_cursor прошлой страницы; без него — самые новые файлы. Фильтры — те же, что у первой страницы */
+  cursor?: string | undefined;
+  /** Только из этого разговора */
+  dialog_id?: string | undefined;
+  /** Только этого формата: xlsx, docx, pdf или csv */
+  format?: T.ListCompanyChatFilesFormat | undefined;
+  /** Сколько на странице: 1–200, по умолчанию 50 */
+  limit?: number | undefined;
+  /** Подстрока имени файла, без учёта регистра */
+  q?: string | undefined;
+}
+
 /** Query parameters of `chat.listMentions`. */
 export interface ChatListMentionsParams {
   /** Сколько на каждый вид: 1–20, по умолчанию 8 */
@@ -733,6 +747,26 @@ export class ChatResource {
   }
 
   /**
+   * Файлы от ИИ в своих разговорах, новые сверху
+   *
+   * Returns one page; iterate the result with `for await` to walk every item of every page.
+   *
+   * `GET /v1/companies/{co}/chat/files`
+   *
+   * Required permission: `chat.use`.
+   */
+  listFiles(co: string, query?: ChatListFilesParams, options?: RequestOptions): PagePromise<T.ChatFileItem, T.ChatFileList> {
+    return requestPage<T.ChatFileItem, T.ChatFileList>(this.#client, { method: 'GET', path: '/v1/companies/{co}/chat/files', pathParams: { co }, query, options });
+  }
+
+  /**
+   * Every item of `listFiles`, across all pages. Pages are fetched lazily; leaving the loop stops fetching.
+   */
+  listFilesAll(co: string, query?: ChatListFilesParams, options?: RequestOptions): AsyncGenerator<T.ChatFileItem, void, undefined> {
+    return this.listFiles(co, query, options)[Symbol.asyncIterator]();
+  }
+
+  /**
    * Что можно упомянуть через «@»
    *
    * `GET /v1/companies/{co}/chat/mentions`
@@ -763,6 +797,39 @@ export class ChatResource {
    */
   listSuggestions(co: string, query?: ChatListSuggestionsParams, options?: RequestOptions): APIPromise<T.ChatSuggestions> {
     return this.#client.request<T.ChatSuggestions>({ method: 'GET', path: '/v1/companies/{co}/chat/suggestions', pathParams: { co }, query, options });
+  }
+
+  /**
+   * Начать загрузку архива к сообщению
+   *
+   * `POST /v1/companies/{co}/chat/uploads`
+   *
+   * Required permission: `chat.use`.
+   */
+  createUpload(co: string, body: T.ChatUploadCreate, options?: RequestOptions): APIPromise<T.ChatUpload> {
+    return this.#client.request<T.ChatUpload>({ method: 'POST', path: '/v1/companies/{co}/chat/uploads', pathParams: { co }, body, options });
+  }
+
+  /**
+   * Отменить загрузку архива
+   *
+   * `DELETE /v1/companies/{co}/chat/uploads/{upload}`
+   *
+   * Required permission: `chat.use`.
+   */
+  deleteUpload(co: string, upload: string, options?: RequestOptions): APIPromise<void> {
+    return this.#client.request({ method: 'DELETE', path: '/v1/companies/{co}/chat/uploads/{upload}', pathParams: { co, upload }, emptyResult: true, options });
+  }
+
+  /**
+   * Часть архива
+   *
+   * `PUT /v1/companies/{co}/chat/uploads/{upload}/parts/{n}`
+   *
+   * Required permission: `chat.use`.
+   */
+  putUploadPart(co: string, upload: string, n: string, options?: RequestOptions): APIPromise<T.ChatUploadPart> {
+    return this.#client.request<T.ChatUploadPart>({ method: 'PUT', path: '/v1/companies/{co}/chat/uploads/{upload}/parts/{n}', pathParams: { co, upload, n }, options });
   }
 
   /**
@@ -890,6 +957,17 @@ export class ChatResource {
    */
   stop(co: string, id: string, options?: RequestOptions): APIPromise<T.ChatStopResult> {
     return this.#client.request<T.ChatStopResult>({ method: 'POST', path: '/v1/companies/{co}/chat/{id}/stop', pathParams: { co, id }, options });
+  }
+
+  /**
+   * Перевести размышление на русский
+   *
+   * `POST /v1/companies/{co}/chat/{id}/thinking/{tid}/translate`
+   *
+   * Required permission: `chat.use`.
+   */
+  translateThinking(co: string, id: string, tid: string, options?: RequestOptions): APIPromise<T.ChatThinkingTranslation> {
+    return this.#client.request<T.ChatThinkingTranslation>({ method: 'POST', path: '/v1/companies/{co}/chat/{id}/thinking/{tid}/translate', pathParams: { co, id, tid }, options });
   }
 }
 
@@ -1556,5 +1634,68 @@ export class AutomationsResource {
    */
   putAutonomy(co: string, body: T.CompanyAutonomyInput, options?: RequestOptions): APIPromise<T.CompanyAutonomy> {
     return this.#client.request<T.CompanyAutonomy>({ method: 'PUT', path: '/v1/companies/{co}/autonomy', pathParams: { co }, body, options });
+  }
+}
+
+/** Публичная проверка электронной подписи документов Tungo: по коду, по файлу, по блоку QR и ключи подписи (без ключа API) */
+export class VerificationResource {
+  readonly #client: APIClient;
+
+  constructor(client: APIClient) {
+    this.#client = client;
+  }
+
+  /**
+   * Ключи подписи QR (JWKS)
+   *
+   * `GET /v1/public/verify-keys`
+   */
+  listKeys(options?: RequestOptions): APIPromise<T.VerifyKeys> {
+    return this.#client.request<T.VerifyKeys>({ method: 'GET', path: '/v1/public/verify-keys', auth: 'public', options });
+  }
+
+  /**
+   * Проверить подписанный блок QR
+   *
+   * `POST /v1/public/verify/qr`
+   */
+  verifyQr(body: T.VerifyQrInput, options?: RequestOptions): APIPromise<T.VerifyQrResult> {
+    return this.#client.request<T.VerifyQrResult>({ method: 'POST', path: '/v1/public/verify/qr', body, auth: 'public', options });
+  }
+
+  /**
+   * Проверка подписи документа по коду
+   *
+   * `GET /v1/public/verify/{code}`
+   */
+  get(code: string, options?: RequestOptions): APIPromise<T.PublicVerification> {
+    return this.#client.request<T.PublicVerification>({ method: 'GET', path: '/v1/public/verify/{code}', pathParams: { code }, auth: 'public', options });
+  }
+
+  /**
+   * Сверить файл с подписанным
+   *
+   * `POST /v1/public/verify/{code}/check`
+   */
+  check(code: string, body: T.VerifyCheckInput, options?: RequestOptions): APIPromise<T.VerifyCheck> {
+    return this.#client.request<T.VerifyCheck>({ method: 'POST', path: '/v1/public/verify/{code}/check', pathParams: { code }, body, auth: 'public', options });
+  }
+}
+
+/** Публичный список загрузок: расширение 1С и Tungo Connector (без ключа API) */
+export class ReleasesResource {
+  readonly #client: APIClient;
+
+  constructor(client: APIClient) {
+    this.#client = client;
+  }
+
+  /**
+   * Что скачать
+   *
+   * `GET /v1/public/downloads`
+   */
+  list(options?: RequestOptions): APIPromise<T.Downloads> {
+    return this.#client.request<T.Downloads>({ method: 'GET', path: '/v1/public/downloads', auth: 'public', options });
   }
 }
