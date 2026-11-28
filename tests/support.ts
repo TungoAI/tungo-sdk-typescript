@@ -223,6 +223,7 @@ export interface Vectors {
       next?: { followups: string[]; action: Record<string, unknown> | null };
     };
   }>;
+  content_disposition: Array<{ name: string; header: string | null; expect: { filename: string | null } }>;
   chat_stream_replay: Array<{
     name: string;
     status: number;

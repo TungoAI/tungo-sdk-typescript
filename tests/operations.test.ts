@@ -3,13 +3,19 @@
 // Calls every method of the SDK against a local server and checks what goes on the wire.
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { DownloadedFile } from '../src/index.js';
 import { OPERATIONS, type Operation } from './operations.js';
 import { API_KEY, withServer } from './support.js';
 
 type AnyMethod = (...args: unknown[]) => unknown;
 
-function reply(op: Operation): { status: number; headers: Record<string, string>; body: string } {
+/** A file body that is not valid UTF-8: a download must hand it over byte for byte. */
+const FILE_BYTES = Buffer.from([0x50, 0x4b, 0x03, 0x04, 0x00, 0xff, 0xfe, 0x80]);
+
+function reply(op: Operation): { status: number; headers: Record<string, string>; body: string | Buffer } {
   switch (op.kind) {
+    case 'download':
+      return { status: 200, headers: { 'content-type': 'application/octet-stream', 'content-disposition': 'attachment; filename="file.bin"' }, body: FILE_BYTES };
     case 'stream':
       return { status: 200, headers: { 'content-type': 'text/event-stream' }, body: 'data: {"type":"done","seq":1}\n\n' };
     case 'empty':
@@ -33,6 +39,7 @@ async function consume(op: Operation, value: unknown): Promise<unknown> {
 describe('every operation of the contract', () => {
   it('covers the whole contract', () => {
     assert.ok(OPERATIONS.length >= 82, 'the table lists ' + String(OPERATIONS.length) + ' methods');
+    assert.ok(OPERATIONS.filter((op) => op.kind === 'download').length >= 3, 'the file downloads are in the table');
     const names = new Set(OPERATIONS.map((op) => op.resource + '.' + op.method));
     assert.equal(names.size, OPERATIONS.length, 'method names are unique');
   });
@@ -69,7 +76,7 @@ describe('every operation of the contract', () => {
           assert.equal(request.url.split('?')[0], path);
           assert.equal(request.query.get('probe_q'), op.query ? 'v 1' : null);
           assert.equal(request.headers['user-agent']?.startsWith('tungo-sdk-typescript/'), true);
-          assert.equal(request.headers.accept, op.kind === 'stream' ? 'text/event-stream' : 'application/json');
+          assert.equal(request.headers.accept, op.kind === 'stream' ? 'text/event-stream' : op.kind === 'download' ? '*/*' : 'application/json');
 
           // Credentials go only where the contract asks for the API key.
           assert.equal(request.headers['x-api-key'], op.auth === 'key' ? API_KEY : undefined);
@@ -91,7 +98,12 @@ describe('every operation of the contract', () => {
             assert.equal(sent['stream'], op.streamFlag ?? undefined);
           }
 
-          if (op.kind === 'empty') assert.equal(result, undefined);
+          if (op.kind === 'download') {
+            assert.ok(result instanceof DownloadedFile);
+            assert.deepEqual(Buffer.from(result.content), FILE_BYTES);
+            assert.equal(result.filename, 'file.bin');
+            assert.equal(result.contentType, 'application/octet-stream');
+          } else if (op.kind === 'empty') assert.equal(result, undefined);
           else if (op.kind === 'stream') assert.deepEqual(result, [{ type: 'done', seq: 1 }]);
           else if (op.method.endsWith('All')) assert.deepEqual(result, [{ id: 'a' }, { id: 'b' }]);
           else if (op.kind === 'page') assert.deepEqual((result as { data: unknown }).data, [{ id: 'a' }, { id: 'b' }]);

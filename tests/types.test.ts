@@ -18,6 +18,7 @@ import type {
   ChatStreamResult,
   ChatTurnResult,
   Company,
+  DownloadedFile,
   FeedItem,
   ListCompaniesResponse,
   Page,
@@ -50,6 +51,10 @@ export async function compileTimeOnly(): Promise<void> {
   expectType<Equal<Awaited<ReturnType<typeof client.verifyWebhook>>, WebhookEvent>>();
   expectType<Equal<Awaited<ReturnType<typeof client.streamChatWithResult>>, ChatStreamResult>>();
   expectType<Equal<Awaited<ReturnType<typeof client.webhooks.deleteEndpoint>>, void>>();
+  // Downloads are files, not JSON.
+  expectType<Equal<ReturnType<typeof client.proposals.export>, APIPromise<DownloadedFile>>>();
+  expectType<Equal<Awaited<ReturnType<typeof client.chat.downloadFile>>['content'], Uint8Array>>();
+  expectType<Equal<Awaited<ReturnType<typeof client.batches.export>>['filename'], string | null>>();
   const raw: WithResponse<Company> = await client.companies.get('co').withResponse();
   expectType<Equal<typeof raw.response.requestId, string | null>>();
 

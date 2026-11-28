@@ -50,7 +50,7 @@ export interface ApiKey {
   workspace_id: string;
   /** Предел записи в 1С по ключу: какие виды документов ключ может одобрять (как kinds правила автоодобрения: sale, purchase, bank_receipt, bank_payment, counterparty, contract, inventory_writeoff, cash_order_in, cash_order_o… */
   write_kinds: string[] | null;
-  /** Предел записи в 1С по ключу: сумма всех документов, одобренных ключом за день по Алматы, в тиынах. Документ с неизвестным исходом записи (1С не ответила) тоже считается. null — без предела */
+  /** Предел записи в 1С по ключу: сумма всех документов, одобренных ключом за день по Алматы, в тиынах. Документ с неизвестным исходом записи (1С не ответила) тоже считается. Обязателен для ключа с proposals.approve (иначе 40… */
   write_max_amount_per_day_tiyn: number | bigint | null;
   /** Предел записи в 1С по ключу: потолок суммы одного документа, который ключ одобряет (approve, approve-batch), в тиынах (1 ₸ = 100 тиын). Документ дороже или без известной суммы ключ не запишет (403, error.code key_write_l… */
   write_max_amount_per_document_tiyn: number | bigint | null;
@@ -117,7 +117,7 @@ export interface ApiKeySelf {
   workspace_id: string;
   /** Предел записи в 1С по ключу: какие виды документов ключ может одобрять (как kinds правила автоодобрения: sale, purchase, bank_receipt, bank_payment, counterparty, contract, inventory_writeoff, cash_order_in, cash_order_o… */
   write_kinds: string[] | null;
-  /** Предел записи в 1С по ключу: сумма всех документов, одобренных ключом за день по Алматы, в тиынах. Документ с неизвестным исходом записи (1С не ответила) тоже считается. null — без предела */
+  /** Предел записи в 1С по ключу: сумма всех документов, одобренных ключом за день по Алматы, в тиынах. Документ с неизвестным исходом записи (1С не ответила) тоже считается. Обязателен для ключа с proposals.approve (иначе 40… */
   write_max_amount_per_day_tiyn: number | bigint | null;
   /** Предел записи в 1С по ключу: потолок суммы одного документа, который ключ одобряет (approve, approve-batch), в тиынах (1 ₸ = 100 тиын). Документ дороже или без известной суммы ключ не запишет (403, error.code key_write_l… */
   write_max_amount_per_document_tiyn: number | bigint | null;
@@ -156,68 +156,6 @@ export type ApiKeySelfWorkspaceKind = 'personal' | 'team' | 'enterprise';
 
 /** Состояние: `active` — действует; `disabled` — выключен (disabled_at), не работает, можно включить; `expired` — истёк срок (expires_at), не работает; `revoked` — отозван (revoked_at), не работает. Неактивные показывать се… */
 export type ApiKeyStatus = 'active' | 'disabled' | 'expired' | 'revoked';
-
-/** Расход ключа на ИИ за период: итоги, по дням, моделям и компаниям; суммы — в тиынах. */
-export interface ApiKeyUsage {
-  /** По компаниям */
-  by_company: ApiKeyUsageByCompanyItem[];
-  /** По дням (только дни с вызовами), по возрастанию даты — для графика */
-  by_day: ApiKeyUsageByDayItem[];
-  /** По моделям ИИ, по алфавиту */
-  by_model: ApiKeyUsageByModelItem[];
-  /** Начало периода, ISO 8601 UTC (включительно) */
-  from: string;
-  /** Ключ (key_…) */
-  key_id: string;
-  month: ApiKeyMonth;
-  /** Конец периода, ISO 8601 UTC (не включительно) */
-  to: string;
-  /** Итоги за период */
-  totals: ApiKeyUsageTotals;
-}
-
-export interface ApiKeyUsageByCompanyItem {
-  /** Компания (co_…); null — вызовы не по компании */
-  company_id: string | null;
-  /** Стоимость в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  cost_tiyn: number | bigint;
-  /** Сколько вызовов ИИ */
-  requests: number | bigint;
-}
-
-export interface ApiKeyUsageByDayItem {
-  /** Стоимость в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  cost_tiyn: number | bigint;
-  /** День по Алматы, ГГГГ-ММ-ДД (календарная дата, без пояса — не переводить) */
-  day: string;
-  /** Сколько вызовов ИИ */
-  requests: number | bigint;
-}
-
-export interface ApiKeyUsageByModelItem {
-  /** Стоимость в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  cost_tiyn: number | bigint;
-  /** Модель ИИ: tungo-1-flash, tungo-1, tungo-1-deep (tungo-search, tungo-legacy) */
-  model: string;
-  /** Сколько вызовов ИИ */
-  requests: number | bigint;
-}
-
-/** Итоги за период */
-export interface ApiKeyUsageTotals {
-  /** Токены, прочитанные из кэша модели (намного дешевле обычных входных) */
-  cache_read_tokens: number | bigint;
-  /** Токены, записанные в кэш модели (дороже обычных входных, зато следующие вызовы дешевле) */
-  cache_write_tokens: number | bigint;
-  /** Стоимость всех вызовов в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  cost_tiyn: number | bigint;
-  /** Токены, отправленные модели (вопрос и контекст). Токен — кусочек текста, по ним считается цена */
-  input_tokens: number | bigint;
-  /** Токены ответа модели */
-  output_tokens: number | bigint;
-  /** Сколько вызовов ИИ за период */
-  requests: number | bigint;
-}
 
 /** Одобрить пачку предложений */
 export type ApproveBatchCompanyProposalsResponse = BatchApproveResponse | BatchApproveJob;
@@ -276,76 +214,6 @@ export interface ApproveRequest {
   note?: string;
   /** true (по умолчанию) — записать и провести; false — записать черновиком без проведения. Только true/false: другое — 400 */
   post?: boolean;
-}
-
-/** Запись журнала организации: кто, когда и что сделал. */
-export interface AuditEntry {
-  /** Код действия вида «объект.действие». Текст для человека собирайте сами на его языке: по этому коду и параметрам из data (ниже — что значит каждый код). Значения: - `company.created` — Компания заведена - `company.updated… */
-  action: AuditEntryAction;
-  /**
-   * Что сделано, готовой фразой по-русски. Оставлено для совместимости: фраза всегда русская, поэтому для показа берите код action и параметры data и подставляйте текст на языке человека
-   * @deprecated
-   */
-  action_title: string;
-  /** Кто сделал */
-  actor: AuditEntryActor;
-  /** Когда случилось. ISO 8601 в UTC (…Z); показывать по времени Казахстана — Asia/Almaty (UTC+5), а не по поясу браузера */
-  at: string | null;
-  /** Компания, к которой относится запись (co_…); null — запись об организации в целом */
-  company_id: string | null;
-  /** Параметры действия (JSON, ключи snake_case) — для подстановки в текст и для подробностей: например { role } у смены роли, { from, amount_tiyn, kind } у платежа, { before, after } у изменений. Набор зависит от action */
-  data?: unknown;
-  /** id записи (aud_…) */
-  id: string;
-  /** IP, с которого пришёл запрос; null — фоновое действие */
-  ip: string | null;
-  /** Над чем сделано — с названием, чтобы не показывать безликое «Организация»: в отличие от target, у действий с вебхуком это сам адрес вебхука, у платежа есть сумма и назначение. null — без отдельного объекта. По ключу API … */
-  object: AuditEntryObject | null;
-  /** Номер запроса (req_…) — по нему поддержка найдёт запрос; null — фоновое действие */
-  request_id: string | null;
-  /** Над чем сделано; null — без отдельного объекта */
-  target: AuditEntryTarget | null;
-}
-
-/** Код действия вида «объект.действие». Текст для человека собирайте сами на его языке: по этому коду и параметрам из data (ниже — что значит каждый код). Значения: - `company.created` — Компания заведена - `company.updated… */
-export type AuditEntryAction = 'company.created' | 'company.updated' | 'company.archived' | 'company.unarchived' | 'company.member_added' | 'company.member_role_changed' | 'company.member_removed' | 'company.onboarding_waived' | 'company.onboarding_unwaived' | 'company.onec_connected' | 'company.onec_updated' | 'company.onec_copy_uploaded' | 'company.onec_copy_held' | 'company.onec_connector_code_created' | 'company.onec_connector_paired' | 'company.onec_connector_rotated' | 'company.onec_connector_rotate_refused' | 'company.onec_connector_revoked' | 'company.onec_connector_unpaired' | 'company.onec_connector_replaced' | 'company.onec_connector_link_approved' | 'connector.link_created' | 'connector.link_denied' | 'company.onec_link_approved' | 'company.onec_link_revoked' | 'onec_link.wrong_match' | 'onec_link.limit_refused' | 'company.profile_rebuild' | 'workspace.member_joined' | 'workspace.member_role_changed' | 'workspace.member_removed' | 'workspace.member_access_revoked' | 'workspace.invitation_created' | 'workspace.invitation_cancelled' | 'workspace.policies_updated' | 'workspace.scim_token_created' | 'workspace.scim_token_revoked' | 'workspace.scim_user_provisioned' | 'workspace.scim_user_deprovisioned' | 'workspace.scim_user_deleted' | 'workspace.updated' | 'workspace.sso_provider_updated' | 'workspace.sso_provider_deleted' | 'workspace.sso_domain_verification_requested' | 'workspace.sso_domain_verified' | 'workspace.ownership_transferred' | 'workspace.deleted' | 'workspace.created' | 'team.checkout_abandoned' | 'enterprise.request_created' | 'workspace.converted_to_team' | 'workspace.deletion_scheduled' | 'workspace.deletion_cancelled' | 'workspace.invitation_resent' | 'team.seats_purchased' | 'team.seats_reduced' | 'admin.workspace.kind_changed' | 'admin.workspace.contract_seats' | 'admin.plan_grant.created' | 'admin.plan_grant.extended' | 'admin.plan_grant.revoked' | 'admin.plan_grant.ended' | 'admin.platform_discount.created' | 'admin.platform_discount.revoked' | 'admin.subscription.cancelled' | 'admin.subscription.resumed' | 'admin.money.exported' | 'admin.payment_search.pd_viewed' | 'workspace.sso_provider_created' | 'workspace.group_created' | 'workspace.group_updated' | 'workspace.group_deleted' | 'workspace.group_member_added' | 'workspace.group_member_removed' | 'workspace.group_roles_changed' | 'workspace.custom_role_created' | 'workspace.custom_role_updated' | 'workspace.custom_role_deleted' | 'workspace.role_ceiling_updated' | 'workspace.model_policy_updated' | 'workspace.retention_updated' | 'workspace.training_consent' | 'workspace.audit_exported' | 'workspace.compliance_updated' | 'workspace.card_payments_updated' | 'workspace.compliance_read' | 'api_key.created' | 'api_key.updated' | 'api_key.rolled' | 'api_key.revoked' | 'api_key.transferred' | 'api_key.disabled' | 'api_key.enabled' | 'webhook.endpoint_created' | 'webhook.endpoint_updated' | 'webhook.endpoint_deleted' | 'webhook.secret_rotated' | 'webhook.secret_read' | 'webhook.message_resent' | 'company.autonomy.changed' | 'automation.paused' | 'automation.resumed' | 'automation.run.cancel' | 'billing.profile.updated' | 'billing.payment_method.disabled' | 'billing.refund.succeeded' | 'billing.manual_charge' | 'subscription.created' | 'subscription.changed' | 'subscription.cancel_scheduled' | 'subscription.resumed' | 'subscription.terminated' | 'billing.refund_request.submitted' | 'billing.refund_request.approved' | 'billing.refund_request.rejected' | 'extra_usage.configured' | 'extra_usage.adjusted' | 'platform.configured' | 'platform.adjusted' | 'extra_usage.member_cap_set' | 'extra_usage.alert_thresholds_set' | 'company.spend_cap_set' | 'team.analytics_exported' | 'team.spend_exported' | 'ai_budget.member_set' | 'ai_budget.member_reset' | 'spend.cap_threshold_reached' | 'spend.company_cap_reached' | 'plan.created' | 'plan.updated' | 'usage_rate.added' | 'user.terms.accepted' | 'account.deletion_code_sent' | 'account.deletion_scheduled' | 'account.deletion_cancelled' | 'account.deleted' | 'langfuse.traces_purged' | 'admin.dialog.langfuse_dataset' | 'admin.dialog.langfuse_annotation' | 'account.email_code_sent' | 'account.email_bound' | 'account.telegram_merged' | 'account.google_linked' | 'account.telegram_merge_refused' | 'admin.ads.conversions_released' | 'admin.ads.conversions_rejected' | 'admin.ads.signups_exported' | 'admin.access.signed_in' | 'admin.access.refused' | 'admin.two_factor.verified' | 'admin.two_factor.enable_requested' | 'admin.two_factor.enabled' | 'admin.two_factor.disabled' | 'admin.session.signed_in' | 'admin.user.banned' | 'admin.user.unbanned' | 'admin.workspace.blocked' | 'admin.workspace.unblocked' | 'admin.workspace.training_consent' | 'admin.user.platform_roles_changed' | 'admin.user.free_eligibility_changed' | 'admin.user.limit_resets_granted' | 'admin.user.limit_resets_revoked' | 'usage.limit_reset_applied' | 'referral.claimed' | 'referral.rewarded' | 'referral.reward_revoked' | 'admin.enterprise_request.status_changed' | 'admin.training.exported' | 'admin.setting.changed' | 'admin.logs.purged' | 'admin.dialog.pd_viewed' | 'admin.dialog.viewed_without_consent' | 'admin.dialog.rating_comments_viewed' | 'admin.dialog.label_set' | 'admin.dialog.label_removed' | 'admin.journal.pd_viewed' | 'admin.company.pd_viewed' | 'admin.company.pd_searched' | 'admin.payment.pd_viewed' | 'site.post_published' | 'site.post_unpublished' | 'site.post_deleted' | 'site.legal_published' | 'site.trackers_saved' | 'help.section_created' | 'help.section_updated' | 'help.section_deleted' | 'help.article_created' | 'help.article_updated' | 'help.article_deleted' | 'help.reordered' | 'support.ticket_created' | 'admin.support.replied' | 'admin.support.note_added' | 'admin.support.ticket_updated' | 'admin.support.attachment_viewed' | 'admin.staff_access.granted' | 'admin.staff_access.revoked' | 'admin.staff_access.retried' | 'admin.staff_access.mail_resent' | 'canary.triggered' | 'billing.payment.new' | 'billing.payment.pending' | 'billing.payment.requires_action' | 'billing.payment.authorized' | 'billing.payment.succeeded' | 'billing.payment.verified' | 'billing.payment.failed' | 'billing.payment.cancelled' | 'billing.payment.partially_refunded' | 'billing.payment.refunded';
-
-/** Кто сделал */
-export interface AuditEntryActor {
-  /** usr_… у человека, key_… у ключа; null у system */
-  id: string | null;
-  /** Имя для показа: имя человека, название ключа API, «Tungo» у system; null — не найдено (ключ удалён, имя не задано) — показать id */
-  name: string | null;
-  /** Кто сделал: user — человек, api_key — интеграция по ключу API, system — сама платформа */
-  type: AuditEntryActorType;
-}
-
-/** Кто сделал: user — человек, api_key — интеграция по ключу API, system — сама платформа */
-export type AuditEntryActorType = 'user' | 'api_key' | 'system';
-
-/** Над чем сделано — с названием, чтобы не показывать безликое «Организация»: в отличие от target, у действий с вебхуком это сам адрес вебхука, у платежа есть сумма и назначение. null — без отдельного объекта. По ключу API … */
-export interface AuditEntryObject {
-  /** Только у платежа: сумма в тиынах; у остальных — null */
-  amount_tiyn: number | bigint | null;
-  /** id объекта: публичный с меткой (pay_…, key_…, co_…), если у вида она есть; у вебхука — id адреса (ep_…) */
-  id: string | null;
-  /** Название для показа: у вебхука — описание, а без него адрес; у ключа, компании, группы и своей роли — название; у человека — имя. null — названия нет (платёж показывайте суммой и назначением, организацию — своим словом) … */
-  name: string | null;
-  /** Только у платежа: назначение — subscription (подписка), seats (места), extra_usage (доп. использование), platform_topup (пополнение платформы), onboarding (подключение компании), card_verification (проверка карты), one_o… */
-  purpose: AuditEntryObjectPurpose | null;
-  /** Вид объекта: webhook — адрес вебхука, payment — платёж, api_key, company, user, group, custom_role, invitation, workspace и другие виды из target.type */
-  type: string;
-}
-
-/** Только у платежа: назначение — subscription (подписка), seats (места), extra_usage (доп. использование), platform_topup (пополнение платформы), onboarding (подключение компании), card_verification (проверка карты), one_o… */
-export type AuditEntryObjectPurpose = 'subscription' | 'one_off' | 'onboarding' | 'extra_usage' | 'platform_topup' | 'seats' | 'manual' | 'card_verification';
-
-/** Над чем сделано; null — без отдельного объекта */
-export interface AuditEntryTarget {
-  /** id объекта — публичный с меткой (usr_…, co_…), если у вида она есть; иначе как есть */
-  id: string | null;
-  /** Вид объекта: user, company, api_key, invitation, payment… */
-  type: string;
 }
 
 /** Правило автоодобрения: документы, подготовленные в сценарии (по одному или пачкой — выписка, входящие ЭСФ), записываются в 1С сами, без кнопки «Записать». Записывается только документ: вида из kinds, без блокеров и похож… */
@@ -1818,21 +1686,6 @@ export interface ChatDialogList {
   next_cursor: string | null;
 }
 
-/** Новое название разговора */
-export interface ChatDialogPatch {
-  /** Новое название, до 64 символов; пустая строка — вернуть автоматическое название (от ИИ, а пока его нет — первый вопрос) */
-  title: string;
-}
-
-/** Оценка разговора после изменения */
-export interface ChatDialogRated {
-  /** id разговора (обычно UUID): по нему продолжают разговор (dialog_id), открывают его GET …/chat/{id} и стирают */
-  id: string;
-  rating: ChatDialogRating;
-  /** Всегда false: предлагать больше не нужно */
-  rating_prompt: false;
-}
-
 /** Оценка разговора человеком */
 export interface ChatDialogRating {
   /** Когда оценка поставлена или изменена, ISO 8601 UTC */
@@ -1841,23 +1694,6 @@ export interface ChatDialogRating {
   comment: string | null;
   /** Оценка разговора: от 1 (плохо) до 5 (отлично) */
   score: number;
-}
-
-/** Оценка разговора */
-export interface ChatDialogRatingBody {
-  /** Комментарий человека, необязательный; предел длины — comment_chars из GET …/chat/rating-options */
-  comment?: string | null;
-  /** Оценка разговора: от 1 (плохо) до 5 (отлично). Повторная оценка заменяет прежнюю */
-  score: number;
-}
-
-/** Разговор с новым названием */
-export interface ChatDialogRenamed {
-  /** id разговора (обычно UUID): по нему продолжают разговор (dialog_id), открывают его GET …/chat/{id} и стирают */
-  id: string;
-  /** Название разговора теперь */
-  title: string;
-  title_source: ChatTitleSource;
 }
 
 /** Разговор в списке */
@@ -2293,60 +2129,11 @@ export interface ChatMention {
   type: ChatMentionType;
 }
 
-/** То, что можно упомянуть через «@» */
-export interface ChatMentionItem {
-  /** Вторая строка: сумма документа, БИН контрагента, дата задания; null — нечего добавить */
-  hint: string | null;
-  /** id для поля mentions вопроса */
-  id: string;
-  /** Как показать в списке и в поле ввода: название документа с номером, имя контрагента, название задания (данные компании) */
-  title: string;
-  /** Что упомянуто: `proposal` — предложение (документ для 1С), id — его номер P-000123; `counterparty` — контрагент из 1С компании, id — его ссылка из поиска; `batch` — задание пачки (разбор выписки, входящие ЭСФ), id — bat_… */
-  type: ChatMentionItemType;
-}
-
-/** Что упомянуто: `proposal` — предложение (документ для 1С), id — его номер P-000123; `counterparty` — контрагент из 1С компании, id — его ссылка из поиска; `batch` — задание пачки (разбор выписки, входящие ЭСФ), id — bat_… */
-export type ChatMentionItemType = 'proposal' | 'counterparty' | 'batch';
-
-/** Что можно упомянуть через «@» */
-export interface ChatMentionSearch {
-  /** Найденное, по видам в порядке запроса; внутри вида — свежие сверху */
-  data: ChatMentionItem[];
-  /** Виды, по которым поиск сейчас невозможен, и почему: кабинет прячет раздел или показывает причину */
-  unavailable: ChatMentionUnavailable[];
-}
-
 /** Что упомянуто: `proposal` — предложение (документ для 1С), id — его номер P-000123; `counterparty` — контрагент из 1С компании, id — его ссылка из поиска; `batch` — задание пачки (разбор выписки, входящие ЭСФ), id — bat_… */
 export type ChatMentionType = 'proposal' | 'counterparty' | 'batch';
 
-/** Вид упоминаний, который сейчас не найти */
-export interface ChatMentionUnavailable {
-  /** `no_access` — нет права видеть документы компании; `onec_not_linked` — 1С не подключена; `onec_unavailable` — 1С сейчас не ответила */
-  reason: ChatMentionUnavailableReason;
-  /** Что упомянуто: `proposal` — предложение (документ для 1С), id — его номер P-000123; `counterparty` — контрагент из 1С компании, id — его ссылка из поиска; `batch` — задание пачки (разбор выписки, входящие ЭСФ), id — bat_… */
-  type: ChatMentionUnavailableType;
-}
-
-/** `no_access` — нет права видеть документы компании; `onec_not_linked` — 1С не подключена; `onec_unavailable` — 1С сейчас не ответила */
-export type ChatMentionUnavailableReason = 'no_access' | 'onec_not_linked' | 'onec_unavailable';
-
-/** Что упомянуто: `proposal` — предложение (документ для 1С), id — его номер P-000123; `counterparty` — контрагент из 1С компании, id — его ссылка из поиска; `batch` — задание пачки (разбор выписки, входящие ЭСФ), id — bat_… */
-export type ChatMentionUnavailableType = 'proposal' | 'counterparty' | 'batch';
-
 /** Сообщение разговора: вопрос человека (role = user) или ответ ИИ (role = assistant) */
 export type ChatMessage = ChatUserMessage | ChatAssistantMessage;
-
-/** Оценка ответа после изменения */
-export interface ChatMessageRated {
-  /** id разговора (обычно UUID): по нему продолжают разговор (dialog_id), открывают его GET …/chat/{id} и стирают */
-  dialog_id: string;
-  /** id сообщения в истории */
-  message_id: string;
-  /** Оценка теперь; null — снята */
-  rating: ChatMessageRating | null;
-  /** Номер ответа */
-  turn_no: number | bigint;
-}
 
 /** Оценка ответа ИИ человеком */
 export interface ChatMessageRating {
@@ -2359,19 +2146,6 @@ export interface ChatMessageRating {
   /** up — палец вверх, down — палец вниз */
   vote: ChatMessageRatingVote;
 }
-
-/** Оценка ответа */
-export interface ChatMessageRatingBody {
-  /** Комментарий человека, необязательный; предел длины — comment_chars из GET …/chat/rating-options */
-  comment?: string | null;
-  /** Причина оценки down — ключ из GET …/chat/rating-options; можно прислать позже повторным PUT. У оценки up причины нет */
-  reason?: string | null;
-  /** up — ответ хороший, down — плохой. Повторная оценка того же ответа заменяет прежнюю */
-  vote: ChatMessageRatingBodyVote;
-}
-
-/** up — ответ хороший, down — плохой. Повторная оценка того же ответа заменяет прежнюю */
-export type ChatMessageRatingBodyVote = 'up' | 'down';
 
 /** up — палец вверх, down — палец вниз */
 export type ChatMessageRatingVote = 'up' | 'down';
@@ -2451,39 +2225,6 @@ export interface ChatQuestion {
   text: string;
 }
 
-/** Предложение оценить закрыто */
-export interface ChatRatingDismissed {
-  /** id разговора (обычно UUID): по нему продолжают разговор (dialog_id), открывают его GET …/chat/{id} и стирают */
-  id: string;
-  /** Всегда false */
-  rating_prompt: false;
-}
-
-/** Настройки формы оценки */
-export interface ChatRatingOptions {
-  /** Предел длины комментария в знаках; 0 — поле комментария не показывать */
-  comment_chars: number | bigint;
-  /** Шкала оценки разговора */
-  dialog_scores: ChatRatingOptionsDialogScores;
-  /** Причины оценки «вниз», по порядку показа */
-  reasons: ChatRatingOptionsReasonItem[];
-}
-
-/** Шкала оценки разговора */
-export interface ChatRatingOptionsDialogScores {
-  /** Высшая оценка разговора */
-  max: number | bigint;
-  /** Низшая оценка разговора */
-  min: number | bigint;
-}
-
-export interface ChatRatingOptionsReasonItem {
-  /** Ключ причины — его слать в reason */
-  key: string;
-  /** Название для показа */
-  title: string;
-}
-
 /** Итог «Стоп» */
 export interface ChatStopResult {
   /** Есть — закрыт открытый уточняющий вопрос */
@@ -2494,64 +2235,12 @@ export interface ChatStopResult {
   stopped: boolean;
 }
 
-/** Подсказка пустого чата */
-export interface ChatSuggestion {
-  /** `ask` — подставить `prompt` в поле ввода; `connect_onec` — открыть подключение 1С */
-  action: ChatSuggestionAction;
-  /** Код подсказки — постоянное имя карточки в настройке (для значка и аналитики); текст по нему подбирать не нужно */
-  code: string;
-  /** Пояснение под заголовком */
-  hint: string;
-  /** Текст вопроса для поля ввода при нажатии (у `connect_onec` не нужен — совпадает с заголовком) */
-  prompt: string;
-  /** Карточка сезонная: показана, потому что сегодня её окно показа; такие стоят в разделе первыми */
-  seasonal: boolean;
-  /** Заголовок карточки на языке ответа, даты уже подставлены */
-  title: string;
-}
-
-/** `ask` — подставить `prompt` в поле ввода; `connect_onec` — открыть подключение 1С */
-export type ChatSuggestionAction = 'ask' | 'connect_onec';
-
-/** Раздел подсказок */
-export interface ChatSuggestionGroup {
-  /** Код раздела — постоянное имя (для значка вкладки) */
-  code: string;
-  /** Подсказки раздела по порядку показа: сезонные первыми; только подходящие компании сейчас и доступные человеку по правам; не больше настройки chat.suggestions_per_group */
-  suggestions: ChatSuggestion[];
-  /** Название раздела на языке ответа */
-  title: string;
-}
-
-/** Подсказки пустого чата с текстами — по состоянию компании, правам человека и календарю */
-export interface ChatSuggestions {
-  /** Разделы по порядку показа; пустых разделов нет */
-  data: ChatSuggestionGroup[];
-  /** Язык текстов в ответе */
-  locale: ChatSuggestionsLocale;
-  /** Подключена ли 1С компании: от этого зависит набор подсказок */
-  onec_linked: boolean;
-}
-
-/** Язык текстов в ответе */
-export type ChatSuggestionsLocale = 'ru' | 'kk';
-
 /** Кусок размышлений ответа по порядку блоков */
 export interface ChatThinkingPart {
   /** Текст: по-русски (или уже переведённый); у блока с translate_id — оригинал модели (обычно по-английски) */
   text: string;
   /** Есть — блок не по-русски и ещё не переведён: перевод — POST …/chat/{id}/thinking/{translate_id}/translate, когда человек раскрыл шаги */
   translate_id?: string;
-}
-
-/** Блок размышления по-русски */
-export interface ChatThinkingTranslation {
-  /** true — перевод уже был, модель не звали */
-  cached: boolean;
-  /** id блока размышления не по-русски (16 hex): тот же в событии thinking и в истории */
-  id: string;
-  /** Блок по-русски */
-  text: string;
 }
 
 /** Откуда название разговора: first_message — первый вопрос (пока ИИ не придумал название, или не смог); ai — придумал ИИ после первого ответа (событие title в потоке хода); user — задал человек (PATCH …/chat/{id}), ИИ его … */
@@ -2796,70 +2485,6 @@ export interface CompanyAutonomyDefaults {
   max_amount_per_document_tiyn: number | bigint;
 }
 
-/** Уровни доверия и потолки компании целиком (не переданный вид — L1, null — умолчание платформы). */
-export interface CompanyAutonomyInput {
-  /** Уровень доверия по видам документов (ключ — вид, как в kinds правила автоодобрения). Не указанный вид — L1. Отмены документа (revert) в списке нет: её всегда решает человек, подпись ЭСФ и закрытие месяца не поднимаются н… */
-  levels: CompanyAutonomyInputLevels;
-  /** Потолок суммы всех записей компании без человека за день по Алматы (все сценарии и выписка DirectBank вместе), в тиынах. null — по умолчанию платформы */
-  max_amount_per_day_tiyn: number | bigint | null;
-  /** Потолок одного документа, записанного без человека, в тиынах (1 ₸ = 100 тиын). null — по умолчанию платформы (настройка automations.money) */
-  max_amount_per_document_tiyn: number | bigint | null;
-}
-
-/** Уровень доверия по видам документов (ключ — вид, как в kinds правила автоодобрения). Не указанный вид — L1. Отмены документа (revert) в списке нет: её всегда решает человек, подпись ЭСФ и закрытие месяца не поднимаются н… */
-export interface CompanyAutonomyInputLevels {
-  /** `L1` — ИИ только готовит, записывает человек (по умолчанию); `L2` — автоодобрение пишет черновиком, без проведения; `L3` — пишет и проводит */
-  advance_report?: CompanyAutonomyInputLevelsAdvanceReport;
-  /** `L1` — ИИ только готовит, записывает человек (по умолчанию); `L2` — автоодобрение пишет черновиком, без проведения; `L3` — пишет и проводит */
-  bank_payment?: CompanyAutonomyInputLevelsBankPayment;
-  /** `L1` — ИИ только готовит, записывает человек (по умолчанию); `L2` — автоодобрение пишет черновиком, без проведения; `L3` — пишет и проводит */
-  bank_receipt?: CompanyAutonomyInputLevelsBankReceipt;
-  /** `L1` — ИИ только готовит, записывает человек (по умолчанию); `L2` — автоодобрение пишет черновиком, без проведения; `L3` — пишет и проводит */
-  cash_order_in?: CompanyAutonomyInputLevelsCashOrderIn;
-  /** `L1` — ИИ только готовит, записывает человек (по умолчанию); `L2` — автоодобрение пишет черновиком, без проведения; `L3` — пишет и проводит */
-  cash_order_out?: CompanyAutonomyInputLevelsCashOrderOut;
-  /** `L1` — ИИ только готовит, записывает человек (по умолчанию); `L2` — автоодобрение пишет черновиком, без проведения; `L3` — пишет и проводит */
-  contract?: CompanyAutonomyInputLevelsContract;
-  /** `L1` — ИИ только готовит, записывает человек (по умолчанию); `L2` — автоодобрение пишет черновиком, без проведения; `L3` — пишет и проводит */
-  counterparty?: CompanyAutonomyInputLevelsCounterparty;
-  /** `L1` — ИИ только готовит, записывает человек (по умолчанию); `L2` — автоодобрение пишет черновиком, без проведения; `L3` — пишет и проводит */
-  inventory_writeoff?: CompanyAutonomyInputLevelsInventoryWriteoff;
-  /** `L1` — ИИ только готовит, записывает человек (по умолчанию); `L2` — автоодобрение пишет черновиком, без проведения; `L3` — пишет и проводит */
-  purchase?: CompanyAutonomyInputLevelsPurchase;
-  /** `L1` — ИИ только готовит, записывает человек (по умолчанию); `L2` — автоодобрение пишет черновиком, без проведения; `L3` — пишет и проводит */
-  sale?: CompanyAutonomyInputLevelsSale;
-}
-
-/** `L1` — ИИ только готовит, записывает человек (по умолчанию); `L2` — автоодобрение пишет черновиком, без проведения; `L3` — пишет и проводит */
-export type CompanyAutonomyInputLevelsAdvanceReport = 'L1' | 'L2' | 'L3';
-
-/** `L1` — ИИ только готовит, записывает человек (по умолчанию); `L2` — автоодобрение пишет черновиком, без проведения; `L3` — пишет и проводит */
-export type CompanyAutonomyInputLevelsBankPayment = 'L1' | 'L2' | 'L3';
-
-/** `L1` — ИИ только готовит, записывает человек (по умолчанию); `L2` — автоодобрение пишет черновиком, без проведения; `L3` — пишет и проводит */
-export type CompanyAutonomyInputLevelsBankReceipt = 'L1' | 'L2' | 'L3';
-
-/** `L1` — ИИ только готовит, записывает человек (по умолчанию); `L2` — автоодобрение пишет черновиком, без проведения; `L3` — пишет и проводит */
-export type CompanyAutonomyInputLevelsCashOrderIn = 'L1' | 'L2' | 'L3';
-
-/** `L1` — ИИ только готовит, записывает человек (по умолчанию); `L2` — автоодобрение пишет черновиком, без проведения; `L3` — пишет и проводит */
-export type CompanyAutonomyInputLevelsCashOrderOut = 'L1' | 'L2' | 'L3';
-
-/** `L1` — ИИ только готовит, записывает человек (по умолчанию); `L2` — автоодобрение пишет черновиком, без проведения; `L3` — пишет и проводит */
-export type CompanyAutonomyInputLevelsContract = 'L1' | 'L2' | 'L3';
-
-/** `L1` — ИИ только готовит, записывает человек (по умолчанию); `L2` — автоодобрение пишет черновиком, без проведения; `L3` — пишет и проводит */
-export type CompanyAutonomyInputLevelsCounterparty = 'L1' | 'L2' | 'L3';
-
-/** `L1` — ИИ только готовит, записывает человек (по умолчанию); `L2` — автоодобрение пишет черновиком, без проведения; `L3` — пишет и проводит */
-export type CompanyAutonomyInputLevelsInventoryWriteoff = 'L1' | 'L2' | 'L3';
-
-/** `L1` — ИИ только готовит, записывает человек (по умолчанию); `L2` — автоодобрение пишет черновиком, без проведения; `L3` — пишет и проводит */
-export type CompanyAutonomyInputLevelsPurchase = 'L1' | 'L2' | 'L3';
-
-/** `L1` — ИИ только готовит, записывает человек (по умолчанию); `L2` — автоодобрение пишет черновиком, без проведения; `L3` — пишет и проводит */
-export type CompanyAutonomyInputLevelsSale = 'L1' | 'L2' | 'L3';
-
 /** Уровень доверия ИИ по каждому виду документов (все виды, кроме отмены документа: её всегда решает человек) */
 export interface CompanyAutonomyLevels {
   /** `L1` — ИИ только готовит, записывает человек; `L2` — автоодобрение пишет черновиком; `L3` — пишет и проводит */
@@ -3061,69 +2686,6 @@ export interface DirectBankPollResult {
   documents: number;
   /** id задания выписки дня (bat_…); null — новых документов в банке нет */
   job_id: string | null;
-}
-
-/** Tungo Connector — программа в офисе; null — ещё не выпущен */
-export interface DownloadConnector {
-  /** По файлу на систему и архитектуру */
-  files: DownloadConnectorFile[];
-  /** Что нового — для человека (Markdown) */
-  notes: string;
-  /** Когда выпущен. ISO 8601 в UTC (…Z); показывать по времени Казахстана — Asia/Almaty (UTC+5), а не по поясу браузера */
-  published_at: string;
-  /** Версия */
-  version: string;
-}
-
-/** Установщик Tungo Connector для системы: windows — .exe, darwin — .pkg */
-export interface DownloadConnectorFile {
-  /** Архитектура */
-  arch: DownloadConnectorFileArch;
-  /** Имя файла */
-  name: string;
-  /** Система */
-  os: DownloadConnectorFileOs;
-  /** SHA-256 файла, 64 шестнадцатеричных знака */
-  sha256: string;
-  /** Размер, байт */
-  size: number | bigint;
-  /** https-адрес файла в выпуске TungoAI/tungo-releases на GitHub */
-  url: string;
-}
-
-/** Архитектура */
-export type DownloadConnectorFileArch = 'amd64' | 'arm64';
-
-/** Система */
-export type DownloadConnectorFileOs = 'windows' | 'darwin' | 'linux';
-
-/** Файл выпуска */
-export interface DownloadFile {
-  /** Имя файла */
-  name: string;
-  /** SHA-256 файла, 64 шестнадцатеричных знака */
-  sha256: string;
-  /** Размер, байт */
-  size: number | bigint;
-  /** https-адрес файла в выпуске TungoAI/tungo-releases на GitHub */
-  url: string;
-}
-
-/** Расширение Tungo для 1С (Tungo.cfe); null — ещё не выпущено */
-export interface DownloadOnecExtension {
-  file: DownloadFile;
-  /** Что нового — для человека (Markdown) */
-  notes: string;
-  /** Когда выпущен. ISO 8601 в UTC (…Z); показывать по времени Казахстана — Asia/Almaty (UTC+5), а не по поясу браузера */
-  published_at: string;
-  /** Версия */
-  version: string;
-}
-
-/** Последние выпуски Tungo для скачивания */
-export interface Downloads {
-  connector: DownloadConnector | null;
-  onec_extension: DownloadOnecExtension | null;
 }
 
 /** Тело любой ошибки API (статусы 4xx и 5xx): `{"type":"error","error":{"type":"…","code":"…","message":"…"},"request_id":"…"}`. Интерфейс ветвится по error.type и error.code, человеку показывает error.message и request_id. */
@@ -3539,23 +3101,11 @@ export interface FormOnecObject {
   ref?: string;
 }
 
-export interface GetWorkspacePlatformAuditResponse {
-  /** Записи этой страницы, от новых к старым */
-  data: AuditEntry[];
-  /** Курсор следующей страницы. Чтобы получить её — тот же запрос (с теми же фильтрами) и `?cursor=<это значение>`. null — страниц больше нет (кнопку «Ещё» спрятать). Курсор непрозрачный: не разбирать и не собирать самому, хр… */
-  next_cursor: string | null;
-  /** Сколько всего записей под этими фильтрами (курсор не учитывается). Считается не дальше 10 000: если записей больше — здесь 10 000 и total_more = true */
-  total: number | bigint;
-  /** true — записей больше, чем total: писать «больше 10 000», а не точное число */
-  total_more: boolean;
-}
+/** Формат файла: xlsx — Excel (все листы); csv — первый лист (UTF-8 с BOM, разделитель — точка с запятой); pdf — все листы разделами на A4 (application/pdf, шрифт вложен: кириллица и казахские буквы). По умолчанию xlsx */
+export type GetCompanyBatchExportFormat = 'xlsx' | 'csv' | 'pdf';
 
-export interface GetWorkspacePlatformLedgerResponse {
-  /** Элементы этой страницы, в порядке списка (обычно от новых к старым) */
-  data: PlatformLedgerEntry[];
-  /** Курсор следующей страницы. Чтобы получить её — тот же запрос (с теми же фильтрами) и `?cursor=<это значение>`. null — страниц больше нет (кнопку «Ещё» спрятать). Курсор непрозрачный: не разбирать и не собирать самому, хр… */
-  next_cursor: string | null;
-}
+/** Формат файла: xlsx — Excel (все листы); csv — первый лист (UTF-8 с BOM, разделитель — точка с запятой); pdf — все листы разделами на A4 (application/pdf, шрифт вложен: кириллица и казахские буквы). По умолчанию xlsx */
+export type GetCompanyProposalExportFormat = 'xlsx' | 'csv' | 'pdf';
 
 /** Сам файл JSON для «Загрузить (JSON)» в КНП ИСНА — сохранить как есть (Content-Disposition: attachment с именем файла), не разбирать */
 export type IsnaFile = Record<string, unknown>;
@@ -3663,30 +3213,8 @@ export interface ListCompanyAutomationsScenariosResponse {
 /** Только этого формата: xlsx, docx, pdf или csv */
 export type ListCompanyChatFilesFormat = 'xlsx' | 'docx' | 'pdf' | 'csv';
 
-/** Язык названий причин; по умолчанию ru */
-export type ListCompanyChatRatingOptionsLang = 'ru' | 'kk';
-
-/** Язык текстов — язык интерфейса кабинета. Не передан — язык ответов ИИ из профиля (`kk` — по-казахски, иначе по-русски) */
-export type ListCompanyChatSuggestionsLang = 'ru' | 'kk';
-
 /** true — только отправленные на одобрение и ещё не решённые; false — только остальные */
 export type ListCompanyProposalsApprovalRequested = 'true' | 'false';
-
-export interface ListUsageRatesResponse {
-  /** Элементы списка — весь список одним ответом, без страниц */
-  data: UsageRate[];
-}
-
-export interface ListWorkspacePlatformRequestsResponse {
-  /** Элементы этой страницы, в порядке списка (обычно от новых к старым) */
-  data: PlatformRequest[];
-  /** Курсор следующей страницы. Чтобы получить её — тот же запрос (с теми же фильтрами) и `?cursor=<это значение>`. null — страниц больше нет (кнопку «Ещё» спрятать). Курсор непрозрачный: не разбирать и не собирать самому, хр… */
-  next_cursor: string | null;
-  /** Сколько всего записей под этими фильтрами (курсор не учитывается). Считается не дальше 10 000: если записей больше — здесь 10 000 и total_more = true */
-  total: number | bigint;
-  /** true — записей больше, чем total: писать «больше 10 000», а не точное число */
-  total_more: boolean;
-}
 
 export interface ListWorkspaceWebhooksEndpointAttemptsResponse {
   /** Элементы этой страницы, в порядке списка (обычно от новых к старым) */
@@ -3806,306 +3334,12 @@ export interface OneCStatusLastCheck {
 /** Итог: ok — всё в порядке; warn — работать можно, но не всё (смотрите checks); fail — работать нельзя */
 export type OneCStatusLastCheckVerdict = 'ok' | 'warn' | 'fail';
 
-/** Счёт платформы для разработчиков: баланс, настройки и траты месяца; ключу на часть компаний — только баланс и потолок. С чатом не пересекается. */
-export interface PlatformAccount {
-  auto_reload?: PlatformAutoReload;
-  /** Сколько автопополнение списало за этот месяц. Нет у ключа на часть компаний в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  auto_reload_spent_tiyn?: number | bigint;
-  /** Баланс платформы в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
+/** Остаток баланса платформы организации. Пополняет владелец или админ в кабинете; история движений и расход — там же. */
+export interface PlatformBalance {
+  /** Остаток баланса платформы в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
   balance_tiyn: number | bigint;
-  /** Почему вызовы сейчас не пройдут: disabled — платформа выключена, cap — достигнут месячный потолок, balance — баланс закончился; null — всё в порядке. Нет у ключа на часть компаний */
-  blocked_reason?: PlatformAccountBlockedReason | null;
-  /** Выключатель платформы: false — вызовы по ключам и автоматизации останавливаются (402 platform_disabled) */
+  /** Включена ли платформа: false — вызовы по ключам и автоматизации стоят (402 platform_disabled), даже при остатке */
   enabled: boolean;
-  /** Месяц по Алматы — его первое число, ГГГГ-ММ-ДД (календарная дата, без пояса — не переводить) */
-  month: string;
-  /** Месячный потолок трат в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸); null — без потолка */
-  monthly_cap_tiyn: number | bigint | null;
-  /** Границы суммы пополнения. Нет у ключа на часть компаний */
-  purchase_limits?: PlatformAccountPurchaseLimits;
-  /** Траты платформы за этот месяц. Нет у ключа на часть компаний в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  spent_tiyn?: number | bigint;
-}
-
-/** Почему вызовы сейчас не пройдут: disabled — платформа выключена, cap — достигнут месячный потолок, balance — баланс закончился; null — всё в порядке. Нет у ключа на часть компаний */
-export type PlatformAccountBlockedReason = 'disabled' | 'cap' | 'balance';
-
-/** Границы суммы пополнения. Нет у ключа на часть компаний */
-export interface PlatformAccountPurchaseLimits {
-  /** Наибольшая сумма пополнений за сутки в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  daily_max_tiyn: number | bigint;
-  /** Наибольшее пополнение за раз в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  max_tiyn: number | bigint;
-  /** Наименьшее пополнение в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  min_tiyn: number | bigint;
-  /** Сколько уже пополнено сегодня (сутки по Алматы; платежи без итога тоже в счёте) — тот же счёт, что у предела daily_max_tiyn в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  today_tiyn: number | bigint;
-}
-
-/** Автопополнение баланса платформы. */
-export interface PlatformAutoReload {
-  /** На сколько пополнять, в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸); null — не задано */
-  amount_tiyn: number | bigint | null;
-  /** Включено ли автопополнение с карты организации */
-  enabled: boolean;
-  /** Автопополнений за календарный месяц по Алматы не больше этого; месячный потолок трат исчерпан — автопополнения нет */
-  monthly_count_max: number | bigint;
-  /** Сколько автопополнение может списать за месяц, в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸); null — предел платформы */
-  monthly_limit_tiyn: number | bigint | null;
-  /** Порог: баланс ниже — пополнить, в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸); null — не задан */
-  threshold_tiyn: number | bigint | null;
-}
-
-/** Движение баланса платформы. */
-export interface PlatformLedgerEntry {
-  /** Изменение баланса в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸): плюс — пришло, минус — ушло */
-  amount_tiyn: number | bigint;
-  /** Ключ вызова (key_…) у usage; null — сценарий, сохранённый по сессии, и остальные виды */
-  api_key_id: string | null;
-  /** Когда, ISO 8601 UTC */
-  at: string;
-  /** Баланс после движения в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  balance_after_tiyn: number | bigint;
-  /** Документы пополнения (kind = purchase) из его платежа. null — у остальных видов и у ключа не на все компании. Файл PDF ядро не формирует: чек выпускает касса, ссылка появляется в receipt_url */
-  documents: PlatformLedgerEntryDocuments | null;
-  /** id движения (led_…); он же — курсор */
-  id: string;
-  /** Вид: `purchase` — пополнение с карты; `usage` — списание за вызов модели; `refund` — возврат на карту (баланс уменьшается); `adjustment` — корректировка поддержкой или возврат удержанной суммы */
-  kind: PlatformLedgerEntryKind;
-  /** Модель вызова у usage; null — у остальных видов */
-  model: string | null;
-  /** Пояснение для людей (у корректировок); null — нет */
-  note: string | null;
-  /** Платёж картой (pay_…) у пополнения и возврата; null — без платежа */
-  payment_id: string | null;
-  /** id вызова модели у usage (тот же, что в расходе хода); null — у остальных видов */
-  request_id: string | null;
-}
-
-/** Документы пополнения (kind = purchase) из его платежа. null — у остальных видов и у ключа не на все компании. Файл PDF ядро не формирует: чек выпускает касса, ссылка появляется в receipt_url */
-export interface PlatformLedgerEntryDocuments {
-  /** Устарело: номер акта (ACT-…) только у старых платежей; у новых — null, акт ежемесячный (GET /v1/workspaces/{ws}/documents) */
-  act_number: string | null;
-  /** Номер счёта на оплату по этому пополнению (TG-…); null — нет */
-  invoice_number: string | null;
-  /** Чек ККМ: not_required — не нужен; pending — выпускается; issued — выпущен (ссылка в receipt_url); failed — не выпустился, мы разбираемся; null — платёж ещё не прошёл */
-  receipt_status: PlatformLedgerEntryDocumentsReceiptStatus | null;
-  /** Ссылка на чек ККМ этого пополнения — «Чек» в истории; null — чек ещё не выпущен или не нужен (см. receipt_status) */
-  receipt_url: string | null;
-}
-
-/** Чек ККМ: not_required — не нужен; pending — выпускается; issued — выпущен (ссылка в receipt_url); failed — не выпустился, мы разбираемся; null — платёж ещё не прошёл */
-export type PlatformLedgerEntryDocumentsReceiptStatus = 'not_required' | 'pending' | 'issued' | 'failed';
-
-/** Вид: `purchase` — пополнение с карты; `usage` — списание за вызов модели; `refund` — возврат на карту (баланс уменьшается); `adjustment` — корректировка поддержкой или возврат удержанной суммы */
-export type PlatformLedgerEntryKind = 'purchase' | 'usage' | 'refund' | 'adjustment';
-
-/** Действующие пределы платформы и сколько от них осталось. */
-export interface PlatformLimits {
-  /** Одновременные ходы ИИ */
-  concurrent_turns: PlatformLimitsConcurrentTurns;
-  /** Размеры файлов и тел запросов */
-  files: PlatformLimitsFiles;
-  /** Частота запросов; сверх предела — 429 rate_limited */
-  rate: PlatformLimitsRate;
-}
-
-/** Одновременные ходы ИИ */
-export interface PlatformLimitsConcurrentTurns {
-  /** Сколько мест занято у этого ключа; null — счётчик не запрашивали */
-  in_use: number | bigint | null;
-  /** Сколько ходов ИИ по одному ключу могут идти одновременно; сверх — 429 concurrent_turns_limit */
-  limit: number | bigint;
-}
-
-/** Размеры файлов и тел запросов */
-export interface PlatformLimitsFiles {
-  /** Один архив, байт; в attachments_total_bytes не входит. Больше attachment_bytes — только загрузкой по частям (POST …/chat/uploads) */
-  archive_bytes: number | bigint;
-  /** Файлов в архиве вместе с вложенными архивами */
-  archive_files: number | bigint;
-  /** Архивов (.zip, .rar, .7z) в одном сообщении */
-  archives_per_message: number | bigint;
-  /** Один файл, байт (до кодирования в base64) */
-  attachment_bytes: number | bigint;
-  /** Сколько файлов в одном сообщении чата */
-  attachments_per_message: number | bigint;
-  /** Все файлы сообщения вместе, байт (до кодирования в base64) */
-  attachments_total_bytes: number | bigint;
-  /** Тело запроса с выпиской банка, байт; больше — 413 payload_too_large */
-  bank_statement_request_bytes: number | bigint;
-  /** Тело запроса хода чата целиком, байт (base64 больше файла на треть); больше — 413 payload_too_large */
-  chat_request_bytes: number | bigint;
-  /** Тело события входящего хука автоматизации, байт; больше — 413 payload_too_large */
-  hook_event_bytes: number | bigint;
-  /** Одна картинка, байт */
-  image_bytes: number | bigint;
-  /** Страниц в одном PDF */
-  pdf_pages: number | bigint;
-  /** Тело остальных запросов, байт; больше — 413 payload_too_large */
-  request_bytes: number | bigint;
-  /** Часть загрузки архива (PUT …/chat/uploads/{upload_id}/parts/{n}), байт; последняя — остаток */
-  upload_part_bytes: number | bigint;
-}
-
-/** Частота запросов; сверх предела — 429 rate_limited */
-export interface PlatformLimitsRate {
-  /** Частота на один ключ */
-  key: PlatformLimitsRateKey;
-  /** Частота на все ключи организации вместе */
-  workspace: PlatformLimitsRateWorkspace;
-}
-
-/** Частота на один ключ */
-export interface PlatformLimitsRateKey {
-  /** Предел запросов в минуту на один ключ */
-  limit_per_minute: number | bigint;
-  /** Сколько осталось в текущей минуте; null — счётчик не запрашивали (по сессии без api_key_id) */
-  remaining: number | bigint | null;
-  /** Через сколько секунд счётчик начнётся заново; 0 — в этой минуте запросов не было; null — счётчик не запрашивали */
-  reset_in_sec: number | bigint | null;
-}
-
-/** Частота на все ключи организации вместе */
-export interface PlatformLimitsRateWorkspace {
-  /** Предел запросов в минуту на все ключи организации вместе */
-  limit_per_minute: number | bigint;
-  /** Сколько осталось в текущей минуте; null — счётчик не запрашивали (по сессии без api_key_id) */
-  remaining: number | bigint | null;
-  /** Через сколько секунд счётчик начнётся заново; 0 — в этой минуте запросов не было; null — счётчик не запрашивали */
-  reset_in_sec: number | bigint | null;
-}
-
-/** Запрос по ключу API в журнале. Тела запросов и ответов не хранятся. */
-export interface PlatformRequest {
-  /** Ключ запроса (key_…); отказы при входе (выключен, адрес, частота) тоже записаны на него */
-  api_key_id: string;
-  /** Когда, ISO 8601 UTC */
-  at: string;
-  /** Номер, присланный вами в x-request-id; null — не присылали или он неверного вида */
-  client_request_id: string | null;
-  /** Компания из адреса (co_…); null — адрес не про компанию */
-  company_id: string | null;
-  /** Цена запроса в тиынах — сколько списано с баланса платформы за вызовы модели этого запроса (ход ИИ; у хода потоком — когда он закончится). null — запрос модель не вызывал; у запросов до появления этого поля тоже null */
-  cost_tiyn: number | bigint | null;
-  /** Сколько шёл ответ, мс. У хода ИИ — до начала потока событий */
-  duration_ms: number | bigint;
-  /** id строки журнала (rlg_…) */
-  id: string;
-  /** С какого адреса пришёл запрос; null — не определён */
-  ip: string | null;
-  /** Метод HTTP */
-  method: string;
-  /** Адрес без строки запроса */
-  path: string;
-  /** Параметры адреса: значения скрыты («…»), кроме безопасных (limit, from, to и подобных); null — параметров нет */
-  query: string | null;
-  /** Номер запроса (req_…): его же вернул заголовок x-request-id; сообщайте в поддержку */
-  request_id: string;
-  /** Статус ответа HTTP */
-  status: number | bigint;
-}
-
-/** Расход платформы за период с разбивкой и токенами всех видов. */
-export interface PlatformUsage {
-  /** По компаниям, дорогие сверху; null — запрошено ключом не на все компании организации */
-  by_company: PlatformUsageByCompanyItem[] | null;
-  /** По дням (только дни с вызовами), по возрастанию даты */
-  by_day: PlatformUsageByDayItem[];
-  /** По ключам, дорогие сверху */
-  by_key: PlatformUsageByKeyItem[];
-  /** По моделям, дорогие сверху */
-  by_model: PlatformUsageByModelItem[];
-  /** Начало периода, ISO 8601 UTC */
-  from: string;
-  /** Конец периода (не включительно), ISO 8601 UTC */
-  to: string;
-  /** Итоги за период */
-  totals: PlatformUsageTotals;
-}
-
-export interface PlatformUsageByCompanyItem {
-  /** Токены, прочитанные из кэша модели */
-  cache_read_tokens: number | bigint;
-  /** Токены, записанные в кэш модели */
-  cache_write_tokens: number | bigint;
-  /** Компания (co_…); null — вызов вне компании */
-  company_id: string | null;
-  /** Стоимость вызовов в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  cost_tiyn: number | bigint;
-  /** Токены, отправленные модели (вопрос и контекст) */
-  input_tokens: number | bigint;
-  /** Токены ответа модели */
-  output_tokens: number | bigint;
-  /** Сколько вызовов модели */
-  requests: number | bigint;
-}
-
-export interface PlatformUsageByDayItem {
-  /** Токены, прочитанные из кэша модели */
-  cache_read_tokens: number | bigint;
-  /** Токены, записанные в кэш модели */
-  cache_write_tokens: number | bigint;
-  /** Стоимость вызовов в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  cost_tiyn: number | bigint;
-  /** День по Алматы, ГГГГ-ММ-ДД (календарная дата, без пояса — не переводить) */
-  day: string;
-  /** Токены, отправленные модели (вопрос и контекст) */
-  input_tokens: number | bigint;
-  /** Токены ответа модели */
-  output_tokens: number | bigint;
-  /** Сколько вызовов модели */
-  requests: number | bigint;
-}
-
-export interface PlatformUsageByKeyItem {
-  /** Ключ (key_…); null — сценарии, сохранённые по сессии */
-  api_key_id: string | null;
-  /** Токены, прочитанные из кэша модели */
-  cache_read_tokens: number | bigint;
-  /** Токены, записанные в кэш модели */
-  cache_write_tokens: number | bigint;
-  /** Стоимость вызовов в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  cost_tiyn: number | bigint;
-  /** Токены, отправленные модели (вопрос и контекст) */
-  input_tokens: number | bigint;
-  /** Токены ответа модели */
-  output_tokens: number | bigint;
-  /** Сколько вызовов модели */
-  requests: number | bigint;
-}
-
-export interface PlatformUsageByModelItem {
-  /** Токены, прочитанные из кэша модели */
-  cache_read_tokens: number | bigint;
-  /** Токены, записанные в кэш модели */
-  cache_write_tokens: number | bigint;
-  /** Стоимость вызовов в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  cost_tiyn: number | bigint;
-  /** Токены, отправленные модели (вопрос и контекст) */
-  input_tokens: number | bigint;
-  /** Модель */
-  model: string;
-  /** Токены ответа модели */
-  output_tokens: number | bigint;
-  /** Сколько вызовов модели */
-  requests: number | bigint;
-}
-
-/** Итоги за период */
-export interface PlatformUsageTotals {
-  /** Токены, прочитанные из кэша модели */
-  cache_read_tokens: number | bigint;
-  /** Токены, записанные в кэш модели */
-  cache_write_tokens: number | bigint;
-  /** Стоимость вызовов в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  cost_tiyn: number | bigint;
-  /** Токены, отправленные модели (вопрос и контекст) */
-  input_tokens: number | bigint;
-  /** Токены ответа модели */
-  output_tokens: number | bigint;
-  /** Сколько вызовов модели */
-  requests: number | bigint;
 }
 
 /** Счёт бухгалтерского учёта, который документ подставит в реквизит 1С (БУ — бухгалтерский учёт, НУ — налоговый учёт) */
@@ -4911,46 +4145,6 @@ export interface TaxPeriodRef {
   title: string;
 }
 
-/** Цена модели ИИ, по которой считается расход. */
-export interface UsageRate {
-  /** Цена 1 млн токенов чтения из кэша модели в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  cache_read_per_mtok_tiyn: number | bigint;
-  /** Цена 1 млн токенов записи в кэш модели на 1 час (дороже: так кэшируются правила и инструменты) в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  cache_write_1h_per_mtok_tiyn: number | bigint;
-  /** Цена 1 млн токенов записи в кэш модели на 5 минут в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  cache_write_per_mtok_tiyn: number | bigint;
-  /** С какого момента действует цена, ISO 8601 UTC */
-  effective_from: string;
-  /** Цена 1 млн входных токенов (вопрос и контекст; токен — кусочек текста) в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  input_per_mtok_tiyn: number | bigint;
-  /** Длинный контекст: если вход вызова вместе с кэшем длиннее above_tokens, весь вызов считается по этим ценам (как в прайсе провайдера); null — у модели одна цена */
-  long_context: UsageRateLongContext | null;
-  /** Модель ИИ: tungo-1-flash, tungo-1, tungo-1-deep (tungo-search — поиск по нормам, tungo-legacy — прежняя) */
-  model: string;
-  /** Цена 1 млн токенов ответа в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  output_per_mtok_tiyn: number | bigint;
-  /** Название модели для людей */
-  title: string;
-  /** Цена 1000 запросов поиска на официальных сайтах РК (когда нормы нет в базе знаний); 0 — модель не ищет в интернете в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  web_search_per_1k_tiyn: number | bigint;
-}
-
-/** Цены вызова с длинным контекстом. */
-export interface UsageRateLongContext {
-  /** Порог: вход вызова вместе с чтением и записью кэша, токенов */
-  above_tokens: number | bigint;
-  /** Цена 1 млн токенов чтения из кэша длинного вызова в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  cache_read_per_mtok_tiyn: number | bigint;
-  /** Цена 1 млн токенов записи в кэш на 1 час длинного вызова в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  cache_write_1h_per_mtok_tiyn: number | bigint;
-  /** Цена 1 млн токенов записи в кэш на 5 минут длинного вызова в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  cache_write_per_mtok_tiyn: number | bigint;
-  /** Цена 1 млн входных токенов длинного вызова в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  input_per_mtok_tiyn: number | bigint;
-  /** Цена 1 млн токенов ответа длинного вызова в тиынах (1 ₸ = 100 тиын; показывать значение / 100 ₸) */
-  output_per_mtok_tiyn: number | bigint;
-}
-
 /** Итог сверки файла */
 export interface VerifyCheck {
   /** true — файл совпадает с подписанным */
@@ -5122,7 +4316,7 @@ export interface WebhookEnvelope {
 }
 
 /** Any outgoing webhook event: the envelope is selected by `type`. */
-export type WebhookEvent = WebhookEventApiKeyCapReached | WebhookEventApiKeyExpiring | WebhookEventAutomationRunCompleted | WebhookEventAutomationRunFailed | WebhookEventAutomationRunNotice | WebhookEventAutomationWriteUnknown | WebhookEventBankStatementReceived | WebhookEventBatchCompleted | WebhookEventBatchFailed | WebhookEventChatTurnCompleted | WebhookEventEsfIncomingReceived | WebhookEventOnecConnectionChanged | WebhookEventPaymentFailed | WebhookEventPaymentSucceeded | WebhookEventPing | WebhookEventPlatformBalanceExhausted | WebhookEventPlatformBalanceLow | WebhookEventPlatformCapThresholdReached | WebhookEventProposalAwaitingApproval | WebhookEventProposalFailed | WebhookEventProposalRejected | WebhookEventProposalWritten;
+export type WebhookEvent = WebhookEventApiKeyCapReached | WebhookEventApiKeyExpiring | WebhookEventAutomationRunCompleted | WebhookEventAutomationRunFailed | WebhookEventAutomationRunNotice | WebhookEventAutomationWriteUnknown | WebhookEventBankStatementReceived | WebhookEventBatchCompleted | WebhookEventBatchFailed | WebhookEventChatTurnCompleted | WebhookEventEsfIncomingReceived | WebhookEventOnecConnectionChanged | WebhookEventPing | WebhookEventPlatformBalanceExhausted | WebhookEventPlatformBalanceLow | WebhookEventPlatformCapThresholdReached | WebhookEventProposalAwaitingApproval | WebhookEventProposalFailed | WebhookEventProposalRejected | WebhookEventProposalWritten;
 
 /** Ключ API упёрся в свой месячный потолок расхода ИИ: вызовы ИИ по нему отклоняются (402 key_cap_reached) до 1-го числа следующего месяца или пока потолок не поднимут (PATCH ключа). Раз в месяц на ключ. */
 export interface WebhookEventApiKeyCapReached {
@@ -5652,70 +4846,6 @@ export type WebhookEventOnecConnectionChangedDataReason = 'device_revoked' | 're
 /** connected — на связи, disconnected — пропала */
 export type WebhookEventOnecConnectionChangedDataState = 'connected' | 'disconnected';
 
-/** Оплата Tungo картой не прошла. Суммы — в тиынах. */
-export interface WebhookEventPaymentFailed {
-  /** Компания; null — событие организации (например, оплата) (co_…) */
-  company_id: string | null;
-  /** Когда событие случилось */
-  created_at: string;
-  /** Данные события — только id, суммы, токены, статусы и время, без персональных данных */
-  data: WebhookEventPaymentFailedData;
-  /** id события — тот же при повторной доставке: по нему отбрасывайте повторы (evt_…) */
-  id: string;
-  /** Вид события */
-  type: 'payment.failed';
-  /** Организация (ws_…) */
-  workspace_id: string;
-}
-
-/** Данные события — только id, суммы, токены, статусы и время, без персональных данных */
-export interface WebhookEventPaymentFailedData {
-  /** Сумма, в тиынах (1 ₸ = 100 тиын) */
-  amount_tiyn: number | bigint;
-  /** Валюта (KZT) */
-  currency: string;
-  /** Номер счёта Tungo */
-  invoice_number: string | null;
-  /** id платежа (pay_…) */
-  payment_id: string;
-  /** За что: subscription — подписка, extra_usage — пополнение баланса чата, platform_topup — пополнение баланса платформы, onboarding — подключение компании */
-  purpose: string;
-  /** НДС в сумме, в тиынах (1 ₸ = 100 тиын) */
-  vat_tiyn: number | bigint | null;
-}
-
-/** Оплата Tungo картой прошла (подписка, пополнение, подключение компании). Суммы — в тиынах. */
-export interface WebhookEventPaymentSucceeded {
-  /** Компания; null — событие организации (например, оплата) (co_…) */
-  company_id: string | null;
-  /** Когда событие случилось */
-  created_at: string;
-  /** Данные события — только id, суммы, токены, статусы и время, без персональных данных */
-  data: WebhookEventPaymentSucceededData;
-  /** id события — тот же при повторной доставке: по нему отбрасывайте повторы (evt_…) */
-  id: string;
-  /** Вид события */
-  type: 'payment.succeeded';
-  /** Организация (ws_…) */
-  workspace_id: string;
-}
-
-/** Данные события — только id, суммы, токены, статусы и время, без персональных данных */
-export interface WebhookEventPaymentSucceededData {
-  /** Сумма, в тиынах (1 ₸ = 100 тиын) */
-  amount_tiyn: number | bigint;
-  /** Валюта (KZT) */
-  currency: string;
-  /** Номер счёта Tungo */
-  invoice_number: string | null;
-  /** id платежа (pay_…) */
-  payment_id: string;
-  /** За что: subscription — подписка, extra_usage — пополнение баланса чата, platform_topup — пополнение баланса платформы, onboarding — подключение компании */
-  purpose: string;
-  /** НДС в сумме, в тиынах (1 ₸ = 100 тиын) */
-  vat_tiyn: number | bigint | null;
-}
-
 /** Пробное событие (POST …/endpoints/{id}/test): проверить, что адрес принимает вебхуки и подпись сходится. Приходит только на этот адрес, в счётчик месяца не идёт. data всегда пуст, company_id — null. */
 export interface WebhookEventPing {
   /** Компания; null — событие организации (например, оплата) (co_…) */
@@ -5759,7 +4889,7 @@ export interface WebhookEventPlatformBalanceExhaustedData {
   threshold_tiyn: number | bigint;
 }
 
-/** Баланс платформы для разработчиков этим списанием опустился ниже порога (настройка платформы platform.billing). Пополнить — POST /v1/workspaces/{ws}/platform/purchases. */
+/** Баланс платформы для разработчиков этим списанием опустился ниже порога (настройка платформы platform.billing). Пополняет владелец или админ организации в кабинете (раздел «Платформа»); остаток — GET /v1/workspaces/{ws}/… */
 export interface WebhookEventPlatformBalanceLow {
   /** Компания; null — событие организации (например, оплата) (co_…) */
   company_id: string | null;
@@ -5976,18 +5106,6 @@ export interface WebhookSecretRotated {
   secret_note?: string;
 }
 
-/** Счётчик событий вебхуков за текущий месяц. */
-export interface WebhookUsage {
-  /** Месяц (по Алматы), ГГГГ-ММ */
-  month: string;
-  /** Бесплатных событий в месяц; null — без предела */
-  monthly_free_messages: number | bigint | null;
-  /** Сколько событий НЕ отправлено: сверх бесплатного числа тарифа. Больше 0 — часть событий потеряна, сверяйтесь через API */
-  over_limit: number | bigint;
-  /** Сколько событий отправлено за месяц */
-  sent: number | bigint;
-}
-
 /** Тариф организации сейчас: оплаченная подписка, иначе тариф по умолчанию (бесплатный) */
 export interface WorkspacePlan {
   /** Код тарифа (code из GET /v1/plans) */
@@ -6012,8 +5130,6 @@ export interface WebhookEventMap {
   'chat.turn.completed': WebhookEventChatTurnCompleted;
   'esf.incoming.received': WebhookEventEsfIncomingReceived;
   'onec.connection.changed': WebhookEventOnecConnectionChanged;
-  'payment.failed': WebhookEventPaymentFailed;
-  'payment.succeeded': WebhookEventPaymentSucceeded;
   'ping': WebhookEventPing;
   'platform.balance_exhausted': WebhookEventPlatformBalanceExhausted;
   'platform.balance_low': WebhookEventPlatformBalanceLow;

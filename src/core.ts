@@ -11,6 +11,7 @@ import {
   apiErrorFromResponse,
   parseRateLimit,
 } from './errors.js';
+import { DownloadedFile } from './download.js';
 import { parseJSON, stringifyJSON } from './json.js';
 import type { ResponseInfo, StreamInit, Stream } from './streaming.js';
 import { VERSION } from './version.js';
@@ -479,9 +480,14 @@ class HeaderBag {
   }
 }
 
+/** What a call expects of a successful answer: a JSON body, an event stream or a file. */
+type ExchangeMode = 'json' | 'stream' | 'download';
+
 interface Exchange {
   info: ResponseInfo;
   text: string;
+  /** The body as bytes, for a download (empty otherwise). */
+  bytes: Uint8Array;
   response: Response;
   controller: AbortController;
   detach: () => void;
@@ -643,12 +649,23 @@ export class APIClient {
     return new APIPromise<T>(this.#requestJSON<T>(spec));
   }
 
+  /**
+   * Downloads a file: accepts any media type and returns the body as bytes, with the file name and
+   * content type of the response. Authentication, retries, timeouts (which cover reading the body),
+   * cancellation and errors are those of {@link request}.
+   */
+  download(spec: RequestSpec): APIPromise<DownloadedFile> {
+    return new APIPromise<DownloadedFile>(
+      this.#exchange(spec, 'download').then((x) => ({ data: new DownloadedFile(x.bytes, x.info), response: x.info })),
+    );
+  }
+
   /** Opens a server-sent event stream; `make` wraps the connection into the stream object. */
   async openStream<S>(spec: RequestSpec, make: (init: StreamInit) => S): Promise<S> {
     // Checked before anything is sent: once the turn is posted it runs (and is billed) on the
     // server, so a bad option found afterwards would cost a turn and leave the connection open.
     const idleTimeout = positive(spec.options?.streamIdleTimeout, this.streamIdleTimeout, 'streamIdleTimeout', true);
-    const x = await this.#exchange(spec, true);
+    const x = await this.#exchange(spec, 'stream');
     try {
       return make({
         response: x.info,
@@ -669,7 +686,7 @@ export class APIClient {
   }
 
   async #requestJSON<T>(spec: RequestSpec): Promise<WithResponse<T>> {
-    const x = await this.#exchange(spec, false);
+    const x = await this.#exchange(spec, 'json');
     const status = x.info.status;
     if (spec.emptyResult === true || status === 204 || status === 205) {
       return { data: undefined as T, response: x.info };
@@ -694,10 +711,10 @@ export class APIClient {
     }
   }
 
-  #headers(spec: RequestSpec, stream: boolean): { headers: Record<string, string>; hasIdempotencyKey: boolean } {
+  #headers(spec: RequestSpec, mode: ExchangeMode): { headers: Record<string, string>; hasIdempotencyKey: boolean } {
     const options = spec.options ?? {};
     const bag = new HeaderBag();
-    bag.set('Accept', stream ? 'text/event-stream' : 'application/json');
+    bag.set('Accept', mode === 'stream' ? 'text/event-stream' : mode === 'download' ? '*/*' : 'application/json');
     bag.set('User-Agent', USER_AGENT);
     if (spec.rawBody !== undefined) {
       bag.set('Content-Type', spec.contentType ?? 'application/octet-stream');
@@ -770,7 +787,9 @@ export class APIClient {
     return res;
   }
 
-  async #exchange(spec: RequestSpec, stream: boolean): Promise<Exchange> {
+  async #exchange(spec: RequestSpec, mode: ExchangeMode): Promise<Exchange> {
+    const stream = mode === 'stream';
+    const empty = new Uint8Array(0);
     const options = spec.options ?? {};
     const signal = options.signal ?? undefined;
     const method = spec.method.toUpperCase();
@@ -779,7 +798,7 @@ export class APIClient {
 
     const query = buildQuery(spec.query);
     const url = this.baseUrl + buildPath(spec.path, spec.pathParams) + (query === '' ? '' : '?' + query);
-    const { headers, hasIdempotencyKey } = this.#headers(spec, stream);
+    const { headers, hasIdempotencyKey } = this.#headers(spec, mode);
     let body: string | Uint8Array | undefined;
     if (spec.rawBody !== undefined) body = spec.rawBody;
     else if (spec.body !== undefined) body = stringifyJSON(spec.body);
@@ -836,7 +855,7 @@ export class APIClient {
             keepOpen = true;
             clearTimeout(timer);
             this.#log({ kind: 'response', method, route: spec.path, attempt: attempt + 1, status: info.status, durationMs: Date.now() - started, requestId: info.requestId });
-            return { info, text: '', response: synthesized.response, controller, detach };
+            return { info, text: '', bytes: empty, response: synthesized.response, controller, detach };
           }
           if (stream) {
             const contentType = (response.headers.get('content-type') ?? '').trim().toLowerCase();
@@ -854,11 +873,18 @@ export class APIClient {
             keepOpen = true;
             clearTimeout(timer);
             this.#log({ kind: 'response', method, route: spec.path, attempt: attempt + 1, status: info.status, durationMs: Date.now() - started, requestId: info.requestId });
-            return { info, text: '', response, controller, detach };
+            return { info, text: '', bytes: empty, response, controller, detach };
+          }
+          if (mode === 'download') {
+            // The raw bytes: a file is neither JSON nor text. Read inside the attempt, so the
+            // timeout covers the body and a broken connection is retried like any other.
+            const bytes = new Uint8Array(await response.arrayBuffer());
+            this.#log({ kind: 'response', method, route: spec.path, attempt: attempt + 1, status: info.status, durationMs: Date.now() - started, requestId: info.requestId });
+            return { info, text: '', bytes, response, controller, detach };
           }
           const text = await response.text();
           this.#log({ kind: 'response', method, route: spec.path, attempt: attempt + 1, status: info.status, durationMs: Date.now() - started, requestId: info.requestId });
-          return { info, text, response, controller, detach };
+          return { info, text, bytes: empty, response, controller, detach };
         }
         const text = await response.text();
         this.#log({ kind: 'response', method, route: spec.path, attempt: attempt + 1, status: info.status, durationMs: Date.now() - started, requestId: info.requestId });

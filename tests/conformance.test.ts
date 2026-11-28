@@ -4,6 +4,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { backoffDelay, buildQuery, encodePathSegment, MAX_RETRY_AFTER_SECONDS, shouldRetry } from '../src/core.js';
+import { contentDispositionFilename } from '../src/download.js';
 import { apiErrorFromResponse, errorTypeForStatus, parseRetryAfter } from '../src/errors.js';
 import {
   APIError,
@@ -11,6 +12,7 @@ import {
   ChatAccumulator,
   ConflictError,
   DecodeError,
+  DownloadedFile,
   GoneError,
   InternalServerError,
   InvalidRequestError,
@@ -48,6 +50,17 @@ const ERROR_CLASSES: Record<string, new (...args: never[]) => APIError> = {
 describe('conformance vectors', () => {
   it('has the structure this suite was written for', () => {
     assert.equal(vectors.version, 2);
+  });
+
+  it('content_disposition', () => {
+    assert.ok(vectors.content_disposition.length >= 15);
+    for (const c of vectors.content_disposition) {
+      assert.equal(contentDispositionFilename(c.header), c.expect.filename, c.name);
+      // The same header as a response carries it, through the file a download returns.
+      const headers = new Headers(c.header === null ? {} : { 'content-disposition': c.header });
+      const file = new DownloadedFile(new Uint8Array(0), { status: 200, headers, requestId: null, rateLimit: null, attempts: 1 });
+      assert.equal(file.filename, c.expect.filename, c.name + ' (response)');
+    }
   });
 
   it('webhook_verification', async () => {

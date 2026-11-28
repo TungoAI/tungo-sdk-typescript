@@ -39,13 +39,11 @@ function chatBody(message: ChatInput): Omit<T.ChatMessageRequest, 'stream'> {
  * itself are shortcuts for common tasks.
  */
 export class Tungo {
-  /** Организации (workspace), доступные ключу API */
+  /** Организации (workspace), доступные ключу API, и остаток баланса платформы */
   readonly workspaces: R.WorkspacesResource;
   /** Компании организации и их карточки */
   readonly companies: R.CompaniesResource;
-  /** Баланс платформы, книга движений, отчёты о расходе, лимиты, аудит и тарифы моделей */
-  readonly platform: R.PlatformResource;
-  /** Сведения о текущем ключе API и статистика его расхода */
+  /** Сведения о текущем ключе API: права, срок, траты месяца и почему вызовы не пройдут */
   readonly apiKeys: R.ApiKeysResource;
   /** Исходящие вебхуки организации (Svix): адреса, каталог событий, доставки и проверка подписи */
   readonly webhooks: R.WebhooksResource;
@@ -67,8 +65,6 @@ export class Tungo {
   readonly automations: R.AutomationsResource;
   /** Публичная проверка электронной подписи документов Tungo: по коду, по файлу, по блоку QR и ключи подписи (без ключа API) */
   readonly verification: R.VerificationResource;
-  /** Публичный список загрузок: расширение 1С и Tungo Connector (без ключа API) */
-  readonly releases: R.ReleasesResource;
   readonly #client: APIClient;
 
   constructor(options: ClientOptions = {}) {
@@ -76,7 +72,6 @@ export class Tungo {
     this.#client = client;
     this.workspaces = new R.WorkspacesResource(client);
     this.companies = new R.CompaniesResource(client);
-    this.platform = new R.PlatformResource(client);
     this.apiKeys = new R.ApiKeysResource(client);
     this.webhooks = new R.WebhooksResource(client);
     this.chat = new R.ChatResource(client);
@@ -88,7 +83,6 @@ export class Tungo {
     this.onec = new R.OnecResource(client);
     this.automations = new R.AutomationsResource(client);
     this.verification = new R.VerificationResource(client);
-    this.releases = new R.ReleasesResource(client);
   }
 
   /** Base URL the client talks to. */

@@ -105,7 +105,7 @@ describe('configuration', () => {
     assert.match(err.message, /TUNGO_API_KEY/);
     assert.equal(calls.length, 0);
     // Operations that need no key still work.
-    await client.platform.listUsageRates();
+    await client.verification.listKeys();
     await client.sendHook('tok', { a: 1 });
     assert.equal(calls.length, 2);
     for (const call of calls) {
@@ -232,8 +232,12 @@ describe('request encoding', () => {
       },
       async (server) => {
         const client = server.client();
-        await client.platform.getAudit('ws', { limit: 5, action: 'a b&c', from: new Date(Date.UTC(2026, 0, 2, 3, 4, 5)), to: null, cursor: undefined });
-        assert.equal(server.requests[0]?.url, '/v1/workspaces/ws/platform/audit?limit=5&action=a%20b%26c&from=2026-01-02T03%3A04%3A05.000Z');
+        await client.proposals.list('co', { limit: 5, q: 'a b&c', date_from: '2026-01-02', cursor: undefined });
+        assert.equal(server.requests[0]?.url, '/v1/companies/co/proposals?limit=5&q=a%20b%26c&date_from=2026-01-02');
+        await client.automations.listRuns('co', { scenario: 'x/y', limit: null });
+        assert.equal(server.requests[1]?.url, '/v1/companies/co/automations/runs?scenario=x%2Fy');
+        await client.request({ method: 'GET', path: '/v1/companies', query: { from: new Date(Date.UTC(2026, 0, 2, 3, 4, 5)), to: null } });
+        assert.equal(server.requests[2]?.url, '/v1/companies?from=2026-01-02T03%3A04%3A05.000Z');
         const err = await rejection(client.request({ method: 'GET', path: '/v1/companies', query: { limit: Number.NaN } }));
         assert.ok(err instanceof ValidationError);
       },

@@ -45,6 +45,7 @@ export {
   type RateLimit,
   type WebhookVerificationReason,
 } from './errors.js';
+export { DownloadedFile } from './download.js';
 export { SSEDecoder, Stream, type ResponseInfo, type ServerSentEvent } from './streaming.js';
 export { Page, PagePromise, type CursorPageBody } from './pagination.js';
 export {

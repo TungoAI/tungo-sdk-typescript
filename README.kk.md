@@ -3,9 +3,9 @@
 <div align="center">
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/TungoAI/.github/main/assets/logo02.svg" />
-  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/TungoAI/.github/main/assets/logo03.svg" />
-  <img alt="Tungo AI" src="https://raw.githubusercontent.com/TungoAI/.github/main/assets/logo03.svg" width="240" />
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/TungoAI/tungo-sdk-typescript/main/.github/logo-dark.svg" />
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/TungoAI/tungo-sdk-typescript/main/.github/logo.svg" />
+  <img alt="Tungo AI" src="https://raw.githubusercontent.com/TungoAI/tungo-sdk-typescript/main/.github/logo.svg" width="240" />
 </picture>
 
 # TypeScript үшін Tungo SDK
@@ -18,7 +18,7 @@
 
 [English](https://github.com/TungoAI/tungo-sdk-typescript/blob/main/README.md) · [Русский](https://github.com/TungoAI/tungo-sdk-typescript/blob/main/README.ru.md) · **Қазақша**
 
-[tungo.kz](https://tungo.kz) · [Жылдам бастау](#жылдам-бастау) · [API анықтамалығы](#api-анықтамалығы) · [Өзгерістер тарихы](https://github.com/TungoAI/tungo-sdk-typescript/blob/main/CHANGELOG.md) · [Өтініштер](https://github.com/TungoAI/tungo-sdk-typescript/issues)
+[tungo.kz](https://tungo.kz) · [Жылдам бастау](#жылдам-бастау) · [API анықтамалығы](#api-анықтамалығы) · [Өзгерістер тарихы](https://github.com/TungoAI/tungo-sdk-typescript/blob/main/CHANGELOG.md) · [Қолдау](https://app.tungo.kz)
 
 </div>
 
@@ -28,11 +28,9 @@ Tungo платформасының API-іне (`https://api.tungo.kz`) арна�
 
 Кітапхана API-дің OpenAPI келісімшартынан жасалады, сондықтан оның әдістері мен модельдері өзі жиналған келісімшартқа әрдайым сәйкес келеді.
 
-> Тек осы тілге қатысты ескертпелері бар толық нұсқа — [ағылшынша README](https://github.com/TungoAI/tungo-sdk-typescript/blob/main/README.md) файлында.
-
 ## Талаптар
 
-Қолдау көрсетілетін нұсқалар мен тәуелділіктер [ағылшынша README](https://github.com/TungoAI/tungo-sdk-typescript/blob/main/README.md#requirements) файлында келтірілген.
+Node.js 20 немесе одан жаңа нұсқа, Deno, Bun, Cloudflare Workers немесе заманауи браузер: SDK-ға тек `fetch`, Web Streams және Web Crypto қажет. Оның орындалу кезіндегі тәуелділіктері жоқ, ол ES модульдері және CommonJS түрінде таратылады және түр мәлімдемелерін қамтиды. Мәлімдемелер TypeScript 5.9 нұсқасымен тексеріледі; ескі компиляторлар тест матрицасына кірмейді.
 
 ## Орнату
 
@@ -101,6 +99,8 @@ const { data, response } = await client.companies.get(company.id).withResponse()
 console.log(data.name, response.status, response.requestId, response.rateLimit?.remaining);
 ```
 
+Барлық ұзақтықтар миллисекундпен беріледі. Күту уақыты нөлден үлкен болуы керек (0 қабылданбайды); `Infinity` немесе 2 147 483 647 ms-тан асатын мән (платформа санай алатын ең ұзақ таймер) уақыт шектеуінің жоқтығын білдіреді. Клиенттің `timeout` параметрі кәдімгі шақыруларды, ал `longRunningTimeout` чаттың ағынсыз айналымдарын қамтиды; жеке сұраудың `timeout` мәні екеуінен де басым. `logger` параметрі әр сұрау, жауап, қайталау және ақау үшін бір оқиға алады; онда әдіс, жол үлгісі, күй және сұрау идентификаторы болады, бірақ тақырып мәндері, API кілті немесе хук токені ешқашан болмайды. Сұрау жиілігін шектеу (rate limit) туралы ақпарат әр жауапқа жеке беріледі (`withResponse()`); клиент ортақ «соңғы жауап» күйін сақтамайды.
+
 ## Қателер
 
 Кез келген ақау — SDK-ның негізгі қатесінің ішкі түрі. HTTP қатесі бар жауап API қатесіне айналады: оның түрі жауап денесіндегі `error.type` өрісі бойынша, ал дене API-дің стандартты қатесі болмаса, HTTP күйі бойынша таңдалады:
@@ -143,6 +143,8 @@ try {
 }
 ```
 
+Класстар: `InvalidRequestError`, `AuthenticationError`, `PaymentRequiredError`, `PermissionError`, `NotFoundError`, `ConflictError`, `GoneError`, `LimitError`, `InternalServerError` (`api_error`) және `UnavailableError` — бәрі `APIError` класын кеңейтеді; сондай-ақ `ConnectionError`, `TimeoutError`, `AbortError` (сіздің `AbortSignal` арқылы тоқтату; сигналдың себебі `cause` болады), `DecodeError`, `StreamError`, `ConfigError`, `ValidationError`, `WebhookVerificationError` және `MoneyError` — бәрі `TungoError` класын кеңейтеді. `err.message` — күйі, коды және сұрау идентификаторы көрсетілген ағылшынша қысқаша сипаттама; `err.detail` — API-дің өз хабарламасы. Сәтті жауаптың ішінде чат айналымы хабарлаған қатені (ағынның `error` оқиғасын немесе `client.ask` нәтижесіндегі `errors` тізімін) чаттың көмекші әдістері оның `error.type` түріне сәйкес сол класпен (мысалы, `LimitError`) лақтырады; бұл жағдайда `status` анықталмаған болады, өйткені оған сәйкес HTTP қате күйі жоқ, ал алынған деректер `partialResult` ішінде болады. Python SDK дәл осы жағдайда `ChatStreamError` (`type`, `code`, `request_id`, `extra` және `result` өрістерімен) қатесін тудырады.
+
 ## Қайталаулар және күту уақыты
 
 Сұрау байланыс қателерінде, күту уақыты біткенде және 408, 429, 500, 502, 503, 504 күйлерінде 2 ретке дейін қайталанады (барлығы 3 әрекет), бірақ тек қайталау қауіпсіз болғанда: `GET`, `HEAD`, `PUT` және `DELETE` сұраулары, сондай-ақ келісімшарты `Idempotency-Key` тақырыбын жариялайтын операциялардың `POST` пен `PATCH` сұраулары. Олар үшін SDK кездейсоқ кілтті өзі жасап, оны барлық әрекетте қолданады; өз кілтіңізді беруге болады. Басқа операциялар кілтті, тіпті берілгенін де, жібермейді: API оны онда ескермейді.
@@ -163,6 +165,8 @@ await client.companies.list({ maxRetries: 0, timeout: 2_000 });
 // operations that declare the header; pass your own to make a retry of your own code safe too.
 await client.proposals.approve('co_01h455vb4pex5vsknk084sn02q', 'P-000042', {}, { idempotencyKey: 'approve-P-000042' });
 ```
+
+Қайта бағыттау ешқашан орындалмайды, сондықтан API кілті сіз баптамаған хостқа кетіп қалмайды: 3xx жауабы сол күйі бар `APIError` болады. Нөлге тең `Retry-After` немесе өтіп кеткен күн бірден қайталауға әкелмейді: есептелген кідіріс қолданылады.
 
 ## Беттеп шығару
 
@@ -188,6 +192,8 @@ for await (const proposal of client.proposals.listAll(company, { status: 'awaiti
   if (proposal.id === 'P-000100') break; // no further pages are requested
 }
 ```
+
+Сервер дәл сол аралауда бұрын қайтарған курсорды (алдыңғысын немесе одан да ертеректегісін) қайтарса, итерация шексіз айналмай, қатемен тоқтайды.
 
 ## Ағынды беру
 
@@ -227,6 +233,27 @@ const turn = await client.streamChatWithResult(company, 'And for October?', {
 console.log(turn.text, turn.stopReason, turn.costTiyn);
 ```
 
+`client.chat.listEvents`, `client.batches.listEvents` және `client.feed.listEvents` — кәдімгі оқиғалар ағындары, олар да дәл осылай жұмыс істейді. `stream.close()` қосылымды анық жабады; `stream.events()` бастапқы server-sent оқиғаларын, ал `stream.lastEventId` жалғастыруға болатын id-ді береді. Ағынның қосылу уақыты — сұраудың `timeout` мәні; `streamIdleTimeout` (әдепкі бойынша 120 с) байттар арасындағы үнсіздікті шектейді. `finalResult()`, `streamChatWithResult` және `accumulateChatStream` жартылай айналымды ешқашан аяқталған ретінде қайтармайды: `done` оқиғасынсыз аяқталған ағын `DecodeError` тудырады (`partialResult` ішінде келген деректер болады), ал `text/event-stream` емес 2xx жауап бос ағынның орнына `DecodeError` тудырады. Ерекше жағдай — API қайталанған `Idempotency-Key` үшін қайта беретін аяқталған чат айналымы (`Idempotent-Replayed: true` тақырыбы бар `application/json`): оның сақталған нәтижесі сол айналымның оқиғалары ретінде келеді де, `next` (бар болса, жалғастыру сұрақтары мен келесі әрекет) және `done` оқиғаларымен аяқталады. Қарапайым итерация ағын аяқталғанда жай ғана аяқталады. `client.feed.listEvents` ағынының `error` оқиғасы (`feed_failed`) `code` және `detail` өрістері бар `StreamError` ретінде лақтырылады: таспа аяқталмады, сондықтан соңғы элементтің курсорынан бастап қайта қосылыңыз.
+
+## Файлдарды жүктеп алу
+
+Файлмен жауап беретін операциялар (`chat.download_file` — ЖИ жинаған Excel, Word, PDF және CSV файлдары; `proposals.export` және `batches.export` — xlsx, csv немесе pdf) жүктелген файлды қайтарады: оның байттарын, `Content-Disposition` тақырыбындағы файл атауын (бар болса UTF-8 `filename*`, әйтпесе `filename`; сервер атау жібермесе, атау болмайды) және `Content-Type`. Файл толығымен жадқа оқылады. Қателер, қайталаулар және күту уақыты басқа сұраулардағыдай. Файл атауы — сервердің ұсынысы, қауіпсіз жол емес: одан тексерусіз жол құрастырмаңыз.
+
+```ts
+import { writeFile } from 'node:fs/promises';
+import { Tungo } from '@tungoai/sdk';
+
+const client = new Tungo();
+
+const file = await client.proposals.export('co_01h455vb4pex5vsknk084sn02q', 'P-000042', { format: 'pdf' });
+console.log(file.filename, file.contentType, file.size, 'bytes, request', file.requestId);
+// file.content is a Uint8Array; the name is the server's suggestion, so keep only its last part.
+const name = file.filename?.split(/[\\/]/).pop() || 'proposal.pdf';
+await writeFile(name, file.content);
+```
+
+`client.chat.downloadFile`, `client.proposals.export` және `client.batches.export` `APIPromise<DownloadedFile>` қайтарады: `content` (`Uint8Array`), `filename` және `contentType` (болмаса — `null`), `size`, `requestId` және `response`; `.withResponse()` кез келген шақырудағыдай жұмыс істейді. Сұрау `Accept: */*` жібереді; қате жауабы — әдеттегі типтелген `APIError`. Браузерде `Blob` алу үшін: `new Blob([file.content], { type: file.contentType ?? '' })`.
+
 ## Вебхуктар
 
 Шығыс вебхуктарға Standard Webhooks (Svix) ерекшелігі бойынша қол қойылады. Тексеру функциясы сұраудың бастапқы денесі мен тақырыптарын (`webhook-*` немесе `svix-*`) қабылдайды, HMAC-SHA256 қолтаңбасын тұрақты уақытта, ал уақыт белгісін жүйелік сағаттан 300 с шегінде тексереді де, типтелген оқиғаны қайтарады. Кез келген мәселе вебхукты тексеру қатесі ретінде хабарланады. Құпия берілмесе, клиенттің вебхук құпиясы қолданылады.
@@ -264,6 +291,8 @@ const accepted = await client.sendHook(
 console.log(accepted.event_id, accepted.duplicate);
 ```
 
+Тексеру асинхронды, өйткені ол Web Crypto қолданады. `verifyWebhook` `Headers` объектісін, Node-тың `req.headers` сияқты қарапайым объектіні, `Map` немесе жұптар массивін қабылдайды. `signHookPayload` пен `verifyHookSignature` хуктарды өздері қабылдайтын серверлер үшін экспортталған.
+
 ## Ақша
 
 API сомаларды тиынмен (теңгенің 1/100 бөлігі) 64 биттік бүтін сандар түрінде береді. Ақша функциялары ондық жолдар мен дәл ондық мәндерді бөлшек сандардың қателігінсіз тиынға айналдырады, жартыны нөлден әрі қарай дөңгелектейді (`"1.005"` → `101`) және тиынды көрсету үшін пішімдейді (`4500000` → `45 000,00 ₸`). Жарамсыз енгізу типтелген қате тудырады.
@@ -279,27 +308,35 @@ console.log(TungoMoney.toTiynBigInt('92233720368547758.07')); // 922337203685477
 console.log(isValidBinIin('990140000017')); // true
 ```
 
+JavaScript сандары тек 2^53-ке дейін дәл. `toTiyn` `number` қайтарады және бұл ауқымнан тыс `MoneyError` лақтырады; `toTiynBigInt` бүкіл 64 биттік ауқымды қамтиды, ал `formatTiyn` `number`, `bigint` немесе ондық жолды қабылдайды. API жауаптарында 2^53-тен асатын бүтін сан үнсіз дөңгелектенбей, `bigint` болып декодталады, ал сұраудағы `bigint` қарапайым JSON саны ретінде жіберіледі. Түрлер мұны көрсетеді: келісімшарт 32 битпен шектемеген бүтін сан өрісі (тиын сомалары, санауыштар) — `number | bigint`. 2^53-ке дейінгі әр мән үшін ол `number` болады, сондықтан `Number(value)`, `BigInt(value)` немесе `typeof value === 'bigint'` тексерісі оның түрін тарылтады; ақша көмекшілері екеуін де қабылдайды.
+
+## Ұзақ операциялар
+
+`client.runScenarioAndWait(company, scenarioId)`, `client.waitForRun(company, runId)` және `client.waitForBatch(company, batchId)` іске қосу немесе жұмыс соңғы күйге жеткенше 1 с-тан 5 с-қа дейін өсетін үзіліспен мезгіл-мезгіл сұрау жіберіп тұрады. Олар `{ timeout, pollInterval, maxPollInterval, signal }` қабылдайды; мерзім (әдепкі бойынша 10 минут) өткенде жергілікті `TimeoutError` лақтырады. Мерзім әлі орындалып жатқан сұрауды да аяқтайды, сондықтан күту сұраудың күту уақыты немесе қайталаулар есебінен мерзімнен асып кетпейді.
+
+## Орындау орталары және модуль пішімдері
+
+Пакеттің `exports` картасы арқылы таңдалатын екі жинағы бар: `import` үшін ES модульдері және `require` үшін CommonJS, әрқайсысының өз түр жариялаулары бар, сондықтан ол `node16`, `nodenext` және `bundler` модульдерді шешу режимдерінде түр тексеруінен өтеді. Ол тек Node.js-ке тән API-ді қолданбайды, сондықтан сол код Deno (`npm:@tungoai/sdk`), Bun, Cloudflare Workers және браузерлерде жұмыс істейді. API кілтін браузерге жібермеңіз: API-ді өз серверіңізден шақырыңыз.
+
 ## API анықтамалығы
 
-Tungo платформасы API-інің келісімшартынан жасалған: **ресурстар — 15, әдістер — 100, вебхук оқиғаларының түрлері — 22**.
+Tungo платформасы API-інің келісімшартынан жасалған: **ресурстар — 13, әдістер — 83, вебхук оқиғаларының түрлері — 20**.
 
 | Ресурс | Сипаттама | Әдістер |
 | --- | --- | --- |
-| `workspaces` | API кілтіне қолжетімді ұйымдар (workspace) | `list` |
+| `workspaces` | API кілтіне қолжетімді ұйымдар (workspace) және платформа балансының қалдығы | `list` · `getBalance` |
 | `companies` | Ұйымның компаниялары және олардың карточкалары | `list` · `get` |
-| `platform` | Платформа балансы, қозғалыстар кітабы, шығын есептері, лимиттер, аудит және модельдер тарифтері | `listUsageRates` · `getAccount` · `getAudit` · `getAuditAll` · `getLedger` · `getLedgerAll` · `listLimits` · `listRequests` · `listRequestsAll` · `getUsage` |
-| `apiKeys` | Ағымдағы API кілті туралы мәлімет және оның шығын статистикасы | `getCurrent` · `getCurrentUsage` · `getUsage` |
-| `webhooks` | Ұйымның шығыс вебхуктары (Svix): мекенжайлар, оқиғалар каталогы, жеткізулер және қолтаңбаны тексеру | `listEndpoints` · `listEndpointsAll` · `createEndpoint` · `getEndpoint` · `updateEndpoint` · `deleteEndpoint` · `listEndpointAttempts` · `listEndpointAttemptsAll` · `rotateEndpointSecret` · `testEndpoint` · `listEventTypes` · `listMessages` · `listMessagesAll` · `listMessageAttempts` · `listMessageAttemptsAll` · `resendMessage` · `getUsage` |
-| `chat` | ЖИ-бухгалтермен диалогтар: сұрақтар, ағынды чат (SSE), токендерді санау және тарих | `list` · `listAll` · `create` · `stream` · `countTokens` · `listFiles` · `listFilesAll` · `listMentions` · `getRatingOptions` · `listSuggestions` · `createUpload` · `deleteUpload` · `putUploadPart` · `get` · `update` · `delete` · `answer` · `answerStream` · `listEvents` · `rateMessage` · `deleteMessageRating` · `rate` · `dismissRating` · `stop` · `translateThinking` |
-| `proposals` | ЖИ-бухгалтер ұсынған құжаттар: қарау, 1С-ке жазуды мақұлдау және қабылдамау | `list` · `listAll` · `approveBatch` · `get` · `approve` · `reject` · `requestApproval` |
+| `apiKeys` | Ағымдағы API кілті: құқықтары, мерзімі, айдағы шығыны және шақырулар неге өтпейтіні | `getCurrent` |
+| `webhooks` | Ұйымның шығыс вебхуктары (Svix): мекенжайлар, оқиғалар каталогы, жеткізулер және қолтаңбаны тексеру | `listEndpoints` · `listEndpointsAll` · `createEndpoint` · `getEndpoint` · `updateEndpoint` · `deleteEndpoint` · `listEndpointAttempts` · `listEndpointAttemptsAll` · `rotateEndpointSecret` · `testEndpoint` · `listEventTypes` · `listMessages` · `listMessagesAll` · `listMessageAttempts` · `listMessageAttemptsAll` · `resendMessage` |
+| `chat` | ЖИ-бухгалтермен диалогтар: сұрақтар, ағынды чат (SSE), токендерді санау және тарих | `list` · `listAll` · `create` · `stream` · `countTokens` · `listFiles` · `listFilesAll` · `createUpload` · `deleteUpload` · `putUploadPart` · `get` · `delete` · `answer` · `answerStream` · `listEvents` · `downloadFile` · `stop` |
+| `proposals` | ЖИ-бухгалтер ұсынған құжаттар: қарау, 1С-ке жазуды мақұлдау және қабылдамау | `list` · `listAll` · `approveBatch` · `get` · `approve` · `export` · `reject` · `requestApproval` |
 | `feed` | Компанияның оқиғалар мен ұсыныстар таспасы (беттер және тікелей SSE ағыны) | `get` · `getAll` · `listEvents` |
-| `batches` | Банк үзінді көшірмелерін, кіріс ЭШФ-ларды және DirectBank-ті өңдеу бумалары | `list` · `listAll` · `createBankStatement` · `createEsfPurchases` · `get` · `listEvents` · `stop` · `getSummary` · `listStatements` · `listStatementsAll` · `pollDirectbank` |
+| `batches` | Банк үзінді көшірмелерін, кіріс ЭШФ-ларды және DirectBank-ті өңдеу бумалары | `list` · `listAll` · `createBankStatement` · `createEsfPurchases` · `get` · `listEvents` · `export` · `stop` · `getSummary` · `listStatements` · `listStatementsAll` · `pollDirectbank` |
 | `esf` | Кіріс және шығыс электрондық шот-фактуралар (ЭШФ АЖ) | `getIncoming` · `getIncomingAll` · `getOutgoing` · `getOutgoingAll` |
 | `forms` | Салық нысандары (СЕН 100.00 және басқалары): құрастыру, ИСНА тексеруі және деректердегі алшақтықтар | `list` · `build` · `listDataGaps` · `getIsna` · `listNotes` |
 | `onec` | Компанияның 1С базасына қосылу күйі | `getStatus` |
-| `automations` | Компания автоматтандырулары: кіріс хуктар, сценарийлер, қадамдар тізбегі, іске қосулар және ЖИ дербестігінің деңгейі | `postHook` · `listHooks` · `createHook` · `getHook` · `updateHook` · `deleteHook` · `rotateHook` · `testHook` · `listRuns` · `listRunsAll` · `getRun` · `cancelRun` · `retryRun` · `listScenarios` · `createScenario` · `getScenario` · `putScenario` · `updateScenario` · `deleteScenario` · `runScenario` · `getState` · `putState` · `getAutonomy` · `putAutonomy` |
+| `automations` | Компания автоматтандырулары: кіріс хуктар, сценарийлер, қадамдар тізбегі, іске қосулар және ЖИ дербестігінің деңгейі | `postHook` · `listHooks` · `createHook` · `getHook` · `updateHook` · `deleteHook` · `rotateHook` · `testHook` · `listRuns` · `listRunsAll` · `getRun` · `cancelRun` · `retryRun` · `listScenarios` · `createScenario` · `getScenario` · `putScenario` · `updateScenario` · `deleteScenario` · `runScenario` · `getState` · `putState` · `getAutonomy` |
 | `verification` | Tungo құжаттарының электрондық қолтаңбасын ашық тексеру: код, файл, QR блогы бойынша және қолтаңба кілттері (API кілтісіз) | `listKeys` · `verifyQr` · `get` · `check` |
-| `releases` | Ашық жүктеулер тізімі: 1С кеңейтімі және Tungo Connector (API кілтісіз) | `list` |
 
 ## Басқа SDK-лар
 
@@ -309,7 +346,7 @@ Tungo платформасы API-інің келісімшартынан жас�
 | --- | --- | --- |
 | **TypeScript** | [tungo-sdk-typescript](https://github.com/TungoAI/tungo-sdk-typescript) | `@tungoai/sdk` |
 | Python | [tungo-sdk-python](https://github.com/TungoAI/tungo-sdk-python) | `tungoai` |
-| Go | [tungo-sdk-go](https://github.com/TungoAI/tungo-sdk-go) | `github.com/TungoAI/tungo-sdk-go` |
+| Go | [tungo-sdk-go](https://github.com/TungoAI/tungo-sdk-go) | `github.com/TungoAI/tungo-sdk-go/v2` |
 | Rust | [tungo-sdk-rust](https://github.com/TungoAI/tungo-sdk-rust) | `tungo-sdk` |
 | PHP | [tungo-sdk-php](https://github.com/TungoAI/tungo-sdk-php) | `tungo/sdk` |
 | Java | [tungo-sdk-java](https://github.com/TungoAI/tungo-sdk-java) | `kz.tungo:tungo-sdk` |
@@ -320,9 +357,9 @@ Tungo платформасы API-інің келісімшартынан жас�
 
 ## Нұсқалар және қолдау
 
-Кітапхана [семантикалық нұсқалауды](https://semver.org/) ұстанады. Аралық және түзету шығарылымдары үйлесімді: API толықтыру арқылы өседі, ал алынатын өріс не әдіс алдымен ескірген деп белгіленіп, кемінде алты ай сақталады. Үйлесімсіз өзгерістер тек жаңа жоғарғы нұсқада болады және ауысу нұсқауларымен бірге [өзгерістер тарихында](https://github.com/TungoAI/tungo-sdk-typescript/blob/main/CHANGELOG.md) келтіріледі. Бұл README 1.0.0 нұсқасын сипаттайды.
+Кітапхана [семантикалық нұсқалауды](https://semver.org/) ұстанады. Аралық және түзету шығарылымдары үйлесімді: API толықтыру арқылы өседі, ал алынатын өріс не әдіс алдымен ескірген деп белгіленіп, кемінде алты ай сақталады. Үйлесімсіз өзгерістер тек жаңа жоғарғы нұсқада болады және ауысу нұсқауларымен бірге [өзгерістер тарихында](https://github.com/TungoAI/tungo-sdk-typescript/blob/main/CHANGELOG.md) келтіріледі. Бұл README 2.0.0 нұсқасын сипаттайды.
 
-Код генератормен жасалады: мәселелер мен ұсыныстар туралы жасалған файлдарға түзету жібермей, [өтініштерге](https://github.com/TungoAI/tungo-sdk-typescript/issues) жазыңыз. Осалдық туралы [қауіпсіздік саясаты](https://github.com/TungoAI/tungo-sdk-typescript/blob/main/SECURITY.md) бойынша хабарлаңыз.
+Сұрақтар мен мәселелер бойынша [Tungo жеке кабинетіндегі](https://app.tungo.kz) қолдау қызметіне жүгініңіз. Код API келісімшартынан генератормен жасалады, ал жасалған файлға енгізілген түзету келесі генерация кезінде өшіріледі, сондықтан pull request жібермей, қажетті өзгерісті өтінішіңізде сипаттаңыз. Осалдық туралы [қауіпсіздік саясаты](https://github.com/TungoAI/tungo-sdk-typescript/blob/main/SECURITY.md) бойынша хабарлаңыз.
 
 ## Лицензия
 

@@ -2,90 +2,11 @@
 
 import { ChatStream, ChatStreamPromise } from '../chat.js';
 import { StreamPromise, type APIClient, type APIPromise, type RequestOptions } from '../core.js';
+import type { DownloadedFile } from '../download.js';
 import { requestPage, type PagePromise } from '../pagination.js';
 import { Stream, decodeJSONEvent } from '../streaming.js';
 import { sendHook, type HookPayload, type SendHookOptions } from '../webhooks.js';
 import type * as T from './types.js';
-
-/** Query parameters of `platform.getAudit`. */
-export interface PlatformGetAuditParams {
-  /** Только действия, начинающиеся с этой строки: «workspace.member_» — все действия с сотрудниками, «api_key.created» — точное */
-  action?: string | undefined;
-  /** Только действия, сделанные этим ключом API (key_…) */
-  api_key_id?: string | undefined;
-  /** next_cursor прошлой страницы (aud_…); без него — самые свежие записи */
-  cursor?: string | undefined;
-  /** Записи не раньше этого момента, ISO 8601 (включительно). Нет — с самого начала */
-  from?: string | Date | null | undefined;
-  /** Записей на странице, 1–200; по умолчанию 50 */
-  limit?: number | undefined;
-  /** Записи раньше этого момента, ISO 8601 (не включительно); позже from. Нет — до сейчас */
-  to?: string | Date | null | undefined;
-}
-
-/** Query parameters of `platform.getLedger`. */
-export interface PlatformGetLedgerParams {
-  /** next_cursor прошлой страницы (led_…); без него — первая страница */
-  cursor?: string | undefined;
-  /** Сколько движений на странице: 1–200, по умолчанию 100 */
-  limit?: number | undefined;
-}
-
-/** Query parameters of `platform.listLimits`. */
-export interface PlatformListLimitsParams {
-  /** Ключ (key_…), чьи счётчики показать. По ключу API — только он сам; нет — по ключу API он сам, по сессии — только значения пределов */
-  api_key_id?: string | undefined;
-}
-
-/** Query parameters of `platform.listRequests`. */
-export interface PlatformListRequestsParams {
-  /** Только запросы этого ключа (key_…) */
-  api_key_id?: string | undefined;
-  /** Номер, который вы сами прислали в заголовке x-request-id */
-  client_request_id?: string | undefined;
-  /** next_cursor прошлой страницы (rlg_…); без него — первая страница */
-  cursor?: string | undefined;
-  /** Начало периода, ISO 8601 (включительно) */
-  from?: string | Date | null | undefined;
-  /** Сколько запросов на странице: 1–200, по умолчанию 100 */
-  limit?: number | undefined;
-  /** Адрес начинается с этой строки */
-  path?: string | undefined;
-  /** Номер запроса (req_…) — из заголовка x-request-id ответа или из ошибки */
-  request_id?: string | undefined;
-  /** Точный статус HTTP */
-  status?: number | undefined;
-  /** Статус не больше */
-  status_max?: number | undefined;
-  /** Статус не меньше (400 — все отказы и ошибки) */
-  status_min?: number | undefined;
-  /** Конец периода, ISO 8601 (не включительно); позже from */
-  to?: string | Date | null | undefined;
-}
-
-/** Query parameters of `platform.getUsage`. */
-export interface PlatformGetUsageParams {
-  /** Начало периода, ISO 8601 (включительно). Нет — 1-е число текущего месяца, 00:00 по Алматы */
-  from?: string | Date | null | undefined;
-  /** Конец периода, ISO 8601 (не включительно); позже from и не дальше 400 дней от него. Нет — сейчас */
-  to?: string | Date | null | undefined;
-}
-
-/** Query parameters of `apiKeys.getCurrentUsage`. */
-export interface ApiKeysGetCurrentUsageParams {
-  /** Начало периода, ISO 8601 (включительно). Нет — 1-е число текущего месяца, 00:00 по Алматы */
-  from?: string | Date | null | undefined;
-  /** Конец периода, ISO 8601 (не включительно); позже from и не дальше 400 дней от него. Нет — сейчас */
-  to?: string | Date | null | undefined;
-}
-
-/** Query parameters of `apiKeys.getUsage`. */
-export interface ApiKeysGetUsageParams {
-  /** Начало периода, ISO 8601 (включительно). Нет — 1-е число текущего месяца, 00:00 по Алматы */
-  from?: string | Date | null | undefined;
-  /** Конец периода, ISO 8601 (не включительно); позже from и не дальше 400 дней от него. Нет — сейчас */
-  to?: string | Date | null | undefined;
-}
 
 /** Query parameters of `webhooks.listEndpoints`. */
 export interface WebhooksListEndpointsParams {
@@ -147,28 +68,6 @@ export interface ChatListFilesParams {
   q?: string | undefined;
 }
 
-/** Query parameters of `chat.listMentions`. */
-export interface ChatListMentionsParams {
-  /** Сколько на каждый вид: 1–20, по умолчанию 8 */
-  limit?: number | undefined;
-  /** Что ищем: часть номера, названия, имени; у контрагента — от 2 знаков (или БИН цифрами). Пусто — свежие предложения и задания */
-  q?: string | undefined;
-  /** Виды через запятую; по умолчанию все. `proposal` — предложение (документ для 1С), id — его номер P-000123; `counterparty` — контрагент из 1С компании, id — его ссылка из поиска; `batch` — задание пачки (разбор выписки, в… */
-  types?: string | undefined;
-}
-
-/** Query parameters of `chat.getRatingOptions`. */
-export interface ChatGetRatingOptionsParams {
-  /** Язык названий причин; по умолчанию ru */
-  lang?: T.ListCompanyChatRatingOptionsLang | undefined;
-}
-
-/** Query parameters of `chat.listSuggestions`. */
-export interface ChatListSuggestionsParams {
-  /** Язык текстов — язык интерфейса кабинета. Не передан — язык ответов ИИ из профиля (`kk` — по-казахски, иначе по-русски) */
-  lang?: T.ListCompanyChatSuggestionsLang | undefined;
-}
-
 /** Query parameters of `chat.listEvents`. */
 export interface ChatListEventsParams {
   /** Номер хода (X-Turn-No), к которому переподключиться; без него — к текущему */
@@ -199,6 +98,12 @@ export interface ProposalsListParams {
   status?: string | undefined;
 }
 
+/** Query parameters of `proposals.export`. */
+export interface ProposalsExportParams {
+  /** Формат файла: xlsx — Excel (все листы); csv — первый лист (UTF-8 с BOM, разделитель — точка с запятой); pdf — все листы разделами на A4 (application/pdf, шрифт вложен: кириллица и казахские буквы). По умолчанию xlsx */
+  format?: T.GetCompanyProposalExportFormat | undefined;
+}
+
 /** Query parameters of `feed.get`. */
 export interface FeedGetParams {
   /** next_cursor из ответа прошлой страницы; без него — первая (самая свежая) страница. Остальные фильтры — те же, что у первой страницы. */
@@ -225,6 +130,12 @@ export interface BatchesListParams {
   cursor?: string | undefined;
   /** Сколько на странице: 1–100, по умолчанию 50 */
   limit?: number | undefined;
+}
+
+/** Query parameters of `batches.export`. */
+export interface BatchesExportParams {
+  /** Формат файла: xlsx — Excel (все листы); csv — первый лист (UTF-8 с BOM, разделитель — точка с запятой); pdf — все листы разделами на A4 (application/pdf, шрифт вложен: кириллица и казахские буквы). По умолчанию xlsx */
+  format?: T.GetCompanyBatchExportFormat | undefined;
 }
 
 /** Query parameters of `batches.listStatements`. */
@@ -311,7 +222,7 @@ export interface AutomationsListRunsParams {
   scenario?: string | undefined;
 }
 
-/** Организации (workspace), доступные ключу API */
+/** Организации (workspace), доступные ключу API, и остаток баланса платформы */
 export class WorkspacesResource {
   readonly #client: APIClient;
 
@@ -326,6 +237,15 @@ export class WorkspacesResource {
    */
   list(options?: RequestOptions): APIPromise<T.ListWorkspacesResponse> {
     return this.#client.request<T.ListWorkspacesResponse>({ method: 'GET', path: '/v1/workspaces', options });
+  }
+
+  /**
+   * Остаток баланса платформы
+   *
+   * `GET /v1/workspaces/{ws}/platform/balance`
+   */
+  getBalance(ws: string, options?: RequestOptions): APIPromise<T.PlatformBalance> {
+    return this.#client.request<T.PlatformBalance>({ method: 'GET', path: '/v1/workspaces/{ws}/platform/balance', pathParams: { ws }, options });
   }
 }
 
@@ -356,106 +276,7 @@ export class CompaniesResource {
   }
 }
 
-/** Баланс платформы, книга движений, отчёты о расходе, лимиты, аудит и тарифы моделей */
-export class PlatformResource {
-  readonly #client: APIClient;
-
-  constructor(client: APIClient) {
-    this.#client = client;
-  }
-
-  /**
-   * Цены моделей
-   *
-   * `GET /v1/usage-rates`
-   */
-  listUsageRates(options?: RequestOptions): APIPromise<T.ListUsageRatesResponse> {
-    return this.#client.request<T.ListUsageRatesResponse>({ method: 'GET', path: '/v1/usage-rates', auth: 'public', options });
-  }
-
-  /**
-   * Счёт платформы
-   *
-   * `GET /v1/workspaces/{ws}/platform/account`
-   */
-  getAccount(ws: string, options?: RequestOptions): APIPromise<T.PlatformAccount> {
-    return this.#client.request<T.PlatformAccount>({ method: 'GET', path: '/v1/workspaces/{ws}/platform/account', pathParams: { ws }, options });
-  }
-
-  /**
-   * Журнал действий организации
-   *
-   * Returns one page; iterate the result with `for await` to walk every item of every page.
-   *
-   * `GET /v1/workspaces/{ws}/platform/audit`
-   */
-  getAudit(ws: string, query?: PlatformGetAuditParams, options?: RequestOptions): PagePromise<T.AuditEntry, T.GetWorkspacePlatformAuditResponse> {
-    return requestPage<T.AuditEntry, T.GetWorkspacePlatformAuditResponse>(this.#client, { method: 'GET', path: '/v1/workspaces/{ws}/platform/audit', pathParams: { ws }, query, options });
-  }
-
-  /**
-   * Every item of `getAudit`, across all pages. Pages are fetched lazily; leaving the loop stops fetching.
-   */
-  getAuditAll(ws: string, query?: PlatformGetAuditParams, options?: RequestOptions): AsyncGenerator<T.AuditEntry, void, undefined> {
-    return this.getAudit(ws, query, options)[Symbol.asyncIterator]();
-  }
-
-  /**
-   * Движения баланса платформы
-   *
-   * Returns one page; iterate the result with `for await` to walk every item of every page.
-   *
-   * `GET /v1/workspaces/{ws}/platform/ledger`
-   */
-  getLedger(ws: string, query?: PlatformGetLedgerParams, options?: RequestOptions): PagePromise<T.PlatformLedgerEntry, T.GetWorkspacePlatformLedgerResponse> {
-    return requestPage<T.PlatformLedgerEntry, T.GetWorkspacePlatformLedgerResponse>(this.#client, { method: 'GET', path: '/v1/workspaces/{ws}/platform/ledger', pathParams: { ws }, query, options });
-  }
-
-  /**
-   * Every item of `getLedger`, across all pages. Pages are fetched lazily; leaving the loop stops fetching.
-   */
-  getLedgerAll(ws: string, query?: PlatformGetLedgerParams, options?: RequestOptions): AsyncGenerator<T.PlatformLedgerEntry, void, undefined> {
-    return this.getLedger(ws, query, options)[Symbol.asyncIterator]();
-  }
-
-  /**
-   * Пределы платформы и сколько осталось
-   *
-   * `GET /v1/workspaces/{ws}/platform/limits`
-   */
-  listLimits(ws: string, query?: PlatformListLimitsParams, options?: RequestOptions): APIPromise<T.PlatformLimits> {
-    return this.#client.request<T.PlatformLimits>({ method: 'GET', path: '/v1/workspaces/{ws}/platform/limits', pathParams: { ws }, query, options });
-  }
-
-  /**
-   * Журнал запросов по ключам
-   *
-   * Returns one page; iterate the result with `for await` to walk every item of every page.
-   *
-   * `GET /v1/workspaces/{ws}/platform/requests`
-   */
-  listRequests(ws: string, query?: PlatformListRequestsParams, options?: RequestOptions): PagePromise<T.PlatformRequest, T.ListWorkspacePlatformRequestsResponse> {
-    return requestPage<T.PlatformRequest, T.ListWorkspacePlatformRequestsResponse>(this.#client, { method: 'GET', path: '/v1/workspaces/{ws}/platform/requests', pathParams: { ws }, query, options });
-  }
-
-  /**
-   * Every item of `listRequests`, across all pages. Pages are fetched lazily; leaving the loop stops fetching.
-   */
-  listRequestsAll(ws: string, query?: PlatformListRequestsParams, options?: RequestOptions): AsyncGenerator<T.PlatformRequest, void, undefined> {
-    return this.listRequests(ws, query, options)[Symbol.asyncIterator]();
-  }
-
-  /**
-   * Расход платформы
-   *
-   * `GET /v1/workspaces/{ws}/platform/usage`
-   */
-  getUsage(ws: string, query?: PlatformGetUsageParams, options?: RequestOptions): APIPromise<T.PlatformUsage> {
-    return this.#client.request<T.PlatformUsage>({ method: 'GET', path: '/v1/workspaces/{ws}/platform/usage', pathParams: { ws }, query, options });
-  }
-}
-
-/** Сведения о текущем ключе API и статистика его расхода */
+/** Сведения о текущем ключе API: права, срок, траты месяца и почему вызовы не пройдут */
 export class ApiKeysResource {
   readonly #client: APIClient;
 
@@ -470,26 +291,6 @@ export class ApiKeysResource {
    */
   getCurrent(options?: RequestOptions): APIPromise<T.ApiKeySelf> {
     return this.#client.request<T.ApiKeySelf>({ method: 'GET', path: '/v1/api-key', options });
-  }
-
-  /**
-   * Расход ключа, по которому пришёл запрос
-   *
-   * `GET /v1/api-key/usage`
-   */
-  getCurrentUsage(query?: ApiKeysGetCurrentUsageParams, options?: RequestOptions): APIPromise<T.ApiKeyUsage> {
-    return this.#client.request<T.ApiKeyUsage>({ method: 'GET', path: '/v1/api-key/usage', query, options });
-  }
-
-  /**
-   * Расход ключа за период
-   *
-   * `GET /v1/workspaces/{ws}/api-keys/{id}/usage`
-   *
-   * Required permission: `Владелец или админ workspace; по ключу — свой`.
-   */
-  getUsage(ws: string, id: string, query?: ApiKeysGetUsageParams, options?: RequestOptions): APIPromise<T.ApiKeyUsage> {
-    return this.#client.request<T.ApiKeyUsage>({ method: 'GET', path: '/v1/workspaces/{ws}/api-keys/{id}/usage', pathParams: { ws, id }, query, options });
   }
 }
 
@@ -668,17 +469,6 @@ export class WebhooksResource {
   resendMessage(ws: string, id: string, body: T.WebhookResend, options?: RequestOptions): APIPromise<void> {
     return this.#client.request({ method: 'POST', path: '/v1/workspaces/{ws}/webhooks/messages/{id}/resend', pathParams: { ws, id }, body, idempotencyHeader: 'Idempotency-Key', emptyResult: true, options });
   }
-
-  /**
-   * Счётчик событий месяца
-   *
-   * `GET /v1/workspaces/{ws}/webhooks/usage`
-   *
-   * Required permission: `Владелец или админ workspace; ключ API — с правом webhooks.manage`.
-   */
-  getUsage(ws: string, options?: RequestOptions): APIPromise<T.WebhookUsage> {
-    return this.#client.request<T.WebhookUsage>({ method: 'GET', path: '/v1/workspaces/{ws}/webhooks/usage', pathParams: { ws }, options });
-  }
 }
 
 /** Диалоги с ИИ-бухгалтером: вопросы, потоковый чат (SSE), подсчёт токенов и история */
@@ -767,39 +557,6 @@ export class ChatResource {
   }
 
   /**
-   * Что можно упомянуть через «@»
-   *
-   * `GET /v1/companies/{co}/chat/mentions`
-   *
-   * Required permission: `chat.use`.
-   */
-  listMentions(co: string, query?: ChatListMentionsParams, options?: RequestOptions): APIPromise<T.ChatMentionSearch> {
-    return this.#client.request<T.ChatMentionSearch>({ method: 'GET', path: '/v1/companies/{co}/chat/mentions', pathParams: { co }, query, options });
-  }
-
-  /**
-   * Что нужно форме оценки: причины «вниз» и предел комментария
-   *
-   * `GET /v1/companies/{co}/chat/rating-options`
-   *
-   * Required permission: `chat.use`.
-   */
-  getRatingOptions(co: string, query?: ChatGetRatingOptionsParams, options?: RequestOptions): APIPromise<T.ChatRatingOptions> {
-    return this.#client.request<T.ChatRatingOptions>({ method: 'GET', path: '/v1/companies/{co}/chat/rating-options', pathParams: { co }, query, options });
-  }
-
-  /**
-   * Подсказки пустого чата
-   *
-   * `GET /v1/companies/{co}/chat/suggestions`
-   *
-   * Required permission: `chat.use`.
-   */
-  listSuggestions(co: string, query?: ChatListSuggestionsParams, options?: RequestOptions): APIPromise<T.ChatSuggestions> {
-    return this.#client.request<T.ChatSuggestions>({ method: 'GET', path: '/v1/companies/{co}/chat/suggestions', pathParams: { co }, query, options });
-  }
-
-  /**
    * Начать загрузку архива к сообщению
    *
    * `POST /v1/companies/{co}/chat/uploads`
@@ -841,17 +598,6 @@ export class ChatResource {
    */
   get(co: string, id: string, options?: RequestOptions): APIPromise<T.ChatDialog> {
     return this.#client.request<T.ChatDialog>({ method: 'GET', path: '/v1/companies/{co}/chat/{id}', pathParams: { co, id }, options });
-  }
-
-  /**
-   * Переименовать свой разговор
-   *
-   * `PATCH /v1/companies/{co}/chat/{id}`
-   *
-   * Required permission: `chat.use`.
-   */
-  update(co: string, id: string, body: T.ChatDialogPatch, options?: RequestOptions): APIPromise<T.ChatDialogRenamed> {
-    return this.#client.request<T.ChatDialogRenamed>({ method: 'PATCH', path: '/v1/companies/{co}/chat/{id}', pathParams: { co, id }, body, options });
   }
 
   /**
@@ -905,47 +651,16 @@ export class ChatResource {
   }
 
   /**
-   * Оценить ответ ИИ: палец вверх или вниз
+   * Скачать файл, собранный ИИ
    *
-   * `PUT /v1/companies/{co}/chat/{id}/messages/{turn}/rating`
+   * Returns the downloaded file (`DownloadedFile`): its bytes, the file name from `Content-Disposition` and the content type.
    *
-   * Required permission: `chat.use`.
-   */
-  rateMessage(co: string, id: string, turn: string, body: T.ChatMessageRatingBody, options?: RequestOptions): APIPromise<T.ChatMessageRated> {
-    return this.#client.request<T.ChatMessageRated>({ method: 'PUT', path: '/v1/companies/{co}/chat/{id}/messages/{turn}/rating', pathParams: { co, id, turn }, body, options });
-  }
-
-  /**
-   * Снять свою оценку ответа
-   *
-   * `DELETE /v1/companies/{co}/chat/{id}/messages/{turn}/rating`
+   * `GET /v1/companies/{co}/chat/{id}/files/{file}`
    *
    * Required permission: `chat.use`.
    */
-  deleteMessageRating(co: string, id: string, turn: string, options?: RequestOptions): APIPromise<T.ChatMessageRated> {
-    return this.#client.request<T.ChatMessageRated>({ method: 'DELETE', path: '/v1/companies/{co}/chat/{id}/messages/{turn}/rating', pathParams: { co, id, turn }, options });
-  }
-
-  /**
-   * Оценить разговор целиком: от 1 до 5
-   *
-   * `PUT /v1/companies/{co}/chat/{id}/rating`
-   *
-   * Required permission: `chat.use`.
-   */
-  rate(co: string, id: string, body: T.ChatDialogRatingBody, options?: RequestOptions): APIPromise<T.ChatDialogRated> {
-    return this.#client.request<T.ChatDialogRated>({ method: 'PUT', path: '/v1/companies/{co}/chat/{id}/rating', pathParams: { co, id }, body, options });
-  }
-
-  /**
-   * Не сейчас: закрыть предложение оценить разговор
-   *
-   * `POST /v1/companies/{co}/chat/{id}/rating/dismiss`
-   *
-   * Required permission: `chat.use`.
-   */
-  dismissRating(co: string, id: string, options?: RequestOptions): APIPromise<T.ChatRatingDismissed> {
-    return this.#client.request<T.ChatRatingDismissed>({ method: 'POST', path: '/v1/companies/{co}/chat/{id}/rating/dismiss', pathParams: { co, id }, options });
+  downloadFile(co: string, id: string, file: string, options?: RequestOptions): APIPromise<DownloadedFile> {
+    return this.#client.download({ method: 'GET', path: '/v1/companies/{co}/chat/{id}/files/{file}', pathParams: { co, id, file }, options });
   }
 
   /**
@@ -957,17 +672,6 @@ export class ChatResource {
    */
   stop(co: string, id: string, options?: RequestOptions): APIPromise<T.ChatStopResult> {
     return this.#client.request<T.ChatStopResult>({ method: 'POST', path: '/v1/companies/{co}/chat/{id}/stop', pathParams: { co, id }, options });
-  }
-
-  /**
-   * Перевести размышление на русский
-   *
-   * `POST /v1/companies/{co}/chat/{id}/thinking/{tid}/translate`
-   *
-   * Required permission: `chat.use`.
-   */
-  translateThinking(co: string, id: string, tid: string, options?: RequestOptions): APIPromise<T.ChatThinkingTranslation> {
-    return this.#client.request<T.ChatThinkingTranslation>({ method: 'POST', path: '/v1/companies/{co}/chat/{id}/thinking/{tid}/translate', pathParams: { co, id, tid }, options });
   }
 }
 
@@ -1030,6 +734,19 @@ export class ProposalsResource {
    */
   approve(co: string, id: string, body?: T.ApproveRequest, options?: RequestOptions): APIPromise<T.ProposalDecision> {
     return this.#client.request<T.ProposalDecision>({ method: 'POST', path: '/v1/companies/{co}/proposals/{id}/approve', pathParams: { co, id }, body, idempotencyHeader: 'Idempotency-Key', options });
+  }
+
+  /**
+   * Скачать документ файлом
+   *
+   * Returns the downloaded file (`DownloadedFile`): its bytes, the file name from `Content-Disposition` and the content type.
+   *
+   * `GET /v1/companies/{co}/proposals/{id}/export`
+   *
+   * Required permission: `company.read`.
+   */
+  export(co: string, id: string, query?: ProposalsExportParams, options?: RequestOptions): APIPromise<DownloadedFile> {
+    return this.#client.download({ method: 'GET', path: '/v1/companies/{co}/proposals/{id}/export', pathParams: { co, id }, query, options });
   }
 
   /**
@@ -1169,6 +886,19 @@ export class BatchesResource {
    */
   listEvents(co: string, id: string, options?: RequestOptions): ChatStreamPromise {
     return new ChatStreamPromise(this.#client.openStream({ method: 'GET', path: '/v1/companies/{co}/batch/{id}/events', pathParams: { co, id }, options }, (init) => new ChatStream(init)));
+  }
+
+  /**
+   * Скачать результат задания файлом
+   *
+   * Returns the downloaded file (`DownloadedFile`): its bytes, the file name from `Content-Disposition` and the content type.
+   *
+   * `GET /v1/companies/{co}/batch/{id}/export`
+   *
+   * Required permission: `company.read`.
+   */
+  export(co: string, id: string, query?: BatchesExportParams, options?: RequestOptions): APIPromise<DownloadedFile> {
+    return this.#client.download({ method: 'GET', path: '/v1/companies/{co}/batch/{id}/export', pathParams: { co, id }, query, options });
   }
 
   /**
@@ -1624,17 +1354,6 @@ export class AutomationsResource {
   getAutonomy(co: string, options?: RequestOptions): APIPromise<T.CompanyAutonomy> {
     return this.#client.request<T.CompanyAutonomy>({ method: 'GET', path: '/v1/companies/{co}/autonomy', pathParams: { co }, options });
   }
-
-  /**
-   * Изменить доверие ИИ в компании
-   *
-   * `PUT /v1/companies/{co}/autonomy`
-   *
-   * Required permission: `workspace owner/admin (поднять) | automations.manage (снизить)`.
-   */
-  putAutonomy(co: string, body: T.CompanyAutonomyInput, options?: RequestOptions): APIPromise<T.CompanyAutonomy> {
-    return this.#client.request<T.CompanyAutonomy>({ method: 'PUT', path: '/v1/companies/{co}/autonomy', pathParams: { co }, body, options });
-  }
 }
 
 /** Публичная проверка электронной подписи документов Tungo: по коду, по файлу, по блоку QR и ключи подписи (без ключа API) */
@@ -1679,23 +1398,5 @@ export class VerificationResource {
    */
   check(code: string, body: T.VerifyCheckInput, options?: RequestOptions): APIPromise<T.VerifyCheck> {
     return this.#client.request<T.VerifyCheck>({ method: 'POST', path: '/v1/public/verify/{code}/check', pathParams: { code }, body, auth: 'public', options });
-  }
-}
-
-/** Публичный список загрузок: расширение 1С и Tungo Connector (без ключа API) */
-export class ReleasesResource {
-  readonly #client: APIClient;
-
-  constructor(client: APIClient) {
-    this.#client = client;
-  }
-
-  /**
-   * Что скачать
-   *
-   * `GET /v1/public/downloads`
-   */
-  list(options?: RequestOptions): APIPromise<T.Downloads> {
-    return this.#client.request<T.Downloads>({ method: 'GET', path: '/v1/public/downloads', auth: 'public', options });
   }
 }
